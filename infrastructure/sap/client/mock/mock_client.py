@@ -23,6 +23,8 @@ Usage::
 from __future__ import annotations
 
 import logging
+import xml.etree.ElementTree as ET
+from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -77,6 +79,27 @@ _ODATA_XML_ROUTES: dict[str, Path] = {
     / "docs"
     / "odata"
     / "موجودی انبار مرکزی قطعات یدکی.xml",
+}
+
+# Natural key each consumer collapses a fixture on. Some SAP CDS views emit
+# several rows per key (one per valuation view), and the fixtures captured
+# those rows verbatim. Callers store one row per key, so serving the raw
+# fixture makes "rows received" and "rows stored" disagree — collapse here so
+# the mock hands out exactly what a caller can persist.
+_XML_DEDUP_KEYS: dict[str, tuple[str, ...]] = {
+    "ZI_STOCK_KH08_CDS": (
+        "Material",
+        "Plant",
+        "StorageLocation",
+        "InventoryStockType",
+    ),
+}
+
+# Column whose non-zero value wins when collapsing duplicates. In the stock
+# fixture the trailing duplicate always carries 0.00, so picking it would drop
+# the real valuation.
+_XML_DEDUP_PREFERRED_COLUMN: dict[str, str] = {
+    "ZI_STOCK_KH08_CDS": "StockValueInDisplayCurrency",
 }
 
 # BAPI response routing — maps function_module → (success, error, duplicate)
@@ -179,6 +202,138 @@ _BAPI_ROUTES: dict[str, tuple[dict, dict, dict]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# XML fixture loading
+# ---------------------------------------------------------------------------
+
+
+def _is_blank_or_zero(text: str) -> bool:
+    """Report whether a SAP numeric string is empty or numerically zero."""
+    cleaned = text.strip().replace(",", "")
+    if not cleaned:
+        return True
+    try:
+        return Decimal(cleaned) == 0
+    except InvalidOperation:
+        return False
+
+
+def _column_names(root: ET.Element) -> list[str]:
+    """Read the ``Columns/Column@Name`` list from a fixture root."""
+    return [
+        str(column.attrib.get("Name", "")).strip()
+        for column in root.findall("./Columns/Column")
+    ]
+
+
+def _row_values(row: ET.Element) -> list[str]:
+    """Read the ordered ``Value`` texts of one fixture row."""
+    return [(value.text or "").strip() for value in row.findall("./Value")]
+
+
+def _collapse_duplicate_rows(root: ET.Element, service: str) -> bool:
+    """Drop duplicate rows in place, keeping the most complete one per key.
+
+    No-op for services without a configured key, or when the fixture lacks one
+    of the key columns.
+
+    Returns:
+        ``True`` when rows were actually removed.
+    """
+    key_columns = _XML_DEDUP_KEYS.get(service)
+    rows_parent = root.find("./Rows")
+    if not key_columns or rows_parent is None:
+        return False
+
+    positions = {name: index for index, name in enumerate(_column_names(root))}
+    if any(column not in positions for column in key_columns):
+        logger.warning(
+            "MockSAPClient: fixture is missing dedup key columns",
+            extra={"service": service, "key_columns": key_columns},
+        )
+        return False
+
+    preferred = _XML_DEDUP_PREFERRED_COLUMN.get(service, "")
+    preferred_position = positions.get(preferred, -1)
+
+    def value_at(values: list[str], position: int) -> str:
+        return values[position] if 0 <= position < len(values) else ""
+
+    ordered_keys: list[tuple[str, ...]] = []
+    winners: dict[tuple[str, ...], ET.Element] = {}
+    winner_is_zero: dict[tuple[str, ...], bool] = {}
+
+    for row in list(rows_parent):
+        values = _row_values(row)
+        key = tuple(value_at(values, positions[column]) for column in key_columns)
+        is_zero = _is_blank_or_zero(value_at(values, preferred_position))
+        if key not in winners:
+            ordered_keys.append(key)
+            winners[key] = row
+            winner_is_zero[key] = is_zero
+            continue
+        # Later rows only win when they fill in a value the incumbent lacks.
+        if winner_is_zero[key] and not is_zero:
+            winners[key] = row
+            winner_is_zero[key] = is_zero
+
+    original_count = len(list(rows_parent))
+    if len(winners) == original_count:
+        return False
+
+    logger.debug(
+        "MockSAPClient: collapsed duplicate fixture rows",
+        extra={
+            "service": service,
+            "rows_in_fixture": original_count,
+            "rows_served": len(winners),
+        },
+    )
+    for row in list(rows_parent):
+        rows_parent.remove(row)
+    for key in ordered_keys:
+        rows_parent.append(winners[key])
+    return True
+
+
+def _load_fixture_text(service: str) -> str | None:
+    """Return the XML fixture for a service, with duplicate rows collapsed.
+
+    The file is returned verbatim unless rows were actually dropped, so
+    fixtures without duplicates keep their original formatting.
+    """
+    path = _ODATA_XML_ROUTES.get(service)
+    if path is None:
+        return None
+    raw = path.read_text(encoding="utf-8-sig")
+    if service not in _XML_DEDUP_KEYS:
+        return raw
+    root = ET.fromstring(raw)  # noqa: S314
+    if not _collapse_duplicate_rows(root, service):
+        return raw
+    return ET.tostring(root, encoding="unicode")
+
+
+def _fixture_rows_as_dicts(service: str) -> list[dict[str, str]] | None:
+    """Return the fixture for a service as OData-style row dictionaries."""
+    text = _load_fixture_text(service)
+    if text is None:
+        return None
+    root = ET.fromstring(text)  # noqa: S314
+    columns = _column_names(root)
+    rows: list[dict[str, str]] = []
+    for row in root.findall("./Rows/Row"):
+        values = _row_values(row)
+        rows.append(
+            {
+                column: values[index] if index < len(values) else ""
+                for index, column in enumerate(columns)
+                if column
+            }
+        )
+    return rows
+
+
 class MockSAPClient(ISAPClient):
     """Simulated SAP client for development and testing.
 
@@ -275,6 +430,14 @@ class MockSAPClient(ISAPClient):
             raise SAPClientError(
                 f"[MOCK] Transport error calling OData GET {service}/{entity}"
             )
+        # Adapters that read a collection over JSON must see the same data as
+        # those reading the XML feed; otherwise the fixture is bypassed and
+        # only the small canned scenario is returned. Key lookups — entities
+        # like ``Foo(Bar='1')`` — still fall through to the canned responses.
+        if "(" not in entity:
+            rows = _fixture_rows_as_dicts(service)
+            if rows is not None:
+                return {"d": {"results": rows}}
         return self._route_odata(service, entity)
 
     def odata_post(
@@ -356,11 +519,11 @@ class MockSAPClient(ISAPClient):
             raise SAPClientError(
                 f"[MOCK] Transport error calling OData GET XML {service}/{entity}"
             )
-        path = _ODATA_XML_ROUTES.get(service)
-        if path is None:
+        text = _load_fixture_text(service)
+        if text is None:
             logger.warning(
                 "MockSAPClient: no route for OData GET XML",
                 extra={"service": service, "entity": entity},
             )
             return '<?xml version="1.0"?><Root><Columns></Columns><Rows></Rows></Root>'
-        return path.read_text(encoding="utf-8-sig")
+        return text
