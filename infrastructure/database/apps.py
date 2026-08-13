@@ -6,11 +6,8 @@ from django.apps import AppConfig
 
 
 class DatabaseConfig(AppConfig):
-    """Registers management commands for database bootstrap."""
+    """Registers shared database models and operational commands."""
 
     name = "infrastructure.database"
     label = "fmms_database"
     verbose_name = "FMMS Database Infrastructure"
-
-    def ready(self) -> None:
-        """No-op ready hook — bootstrap is explicit via command / WSGI."""

@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ──────────────────────────────────────────────────────────────────────────────
 # FMMS Local Development Environment
 # ──────────────────────────────────────────────────────────────────────────────
@@ -33,8 +31,8 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
+      POSTGRES_HOST: ${POSTGRES_DOCKER_HOST:-host.docker.internal}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-fmms}
       POSTGRES_USER: ${POSTGRES_USER:-fmms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fmms}
@@ -45,15 +43,12 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    command: >
-      sh -c "python manage.py ensure_database &&
-             python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+    command: python manage.py runserver 0.0.0.0:8000
 
   # ── Celery Worker ───────────────────────────────────────────────────────────
   celery-worker:
@@ -66,8 +61,8 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
+      POSTGRES_HOST: ${POSTGRES_DOCKER_HOST:-host.docker.internal}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-fmms}
       POSTGRES_USER: ${POSTGRES_USER:-fmms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fmms}
@@ -76,14 +71,12 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.development
     volumes:
       - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    command: >
-      sh -c "python manage.py ensure_database &&
-             celery -A infrastructure.messaging.celery_app worker --loglevel=info"
+    command: celery -A infrastructure.messaging.celery_app worker --loglevel=info
     profiles:
       - celery
 
@@ -98,8 +91,8 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
+      POSTGRES_HOST: ${POSTGRES_DOCKER_HOST:-host.docker.internal}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-fmms}
       POSTGRES_USER: ${POSTGRES_USER:-fmms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fmms}
@@ -108,17 +101,14 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.development
     volumes:
       - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    command: >
-      sh -c "python manage.py ensure_database &&
-             celery -A infrastructure.messaging.celery_app beat --loglevel=info"
+    command: celery -A infrastructure.messaging.celery_app beat --loglevel=info
     profiles:
       - celery
 
 volumes:
-  postgres_data:
   redis_data:

@@ -8,8 +8,13 @@ PostgreSQL is used in development (docker-compose) and production.
 import os
 from pathlib import Path
 
-# Test execution must never inherit real-SAP mode from a developer's local .env.
+# Test execution must never inherit SAP mode toggles from a developer's local .env.
 os.environ["SAP_USE_MOCK"] = "True"
+os.environ["SAP_WRITE"] = "True"
+os.environ.setdefault("POSTGRES_DB", "fmms_test")
+os.environ.setdefault("POSTGRES_USER", "fmms_test")
+os.environ.setdefault("POSTGRES_PASSWORD", "test-only")
+os.environ.setdefault("POSTGRES_HOST", "localhost")
 
 from .base import *  # noqa: F401, F403
 from .base import BASE_DIR  # noqa: F401

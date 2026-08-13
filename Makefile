@@ -25,7 +25,7 @@ help:
 	@echo ""
 	@echo "  Development:"
 	@echo "    make install      Install development dependencies"
-	@echo "    make migrate      Ensure DB exists, then run migrations"
+	@echo "    make migrate      Run Django database migrations"
 	@echo "    make shell        Open Django shell"
 	@echo "    make createsuperuser  Create an admin user"
 	@echo ""
@@ -72,7 +72,6 @@ install:
 	@echo ""
 
 migrate:
-	$(MANAGE) ensure_database
 	$(MANAGE) migrate
 
 makemigrations:

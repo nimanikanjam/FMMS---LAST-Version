@@ -68,7 +68,7 @@ FMMS_APPS = [
     "apps.preventive_maintenance",
     "apps.procurement",
     "apps.integration",
-    # Infrastructure utilities (management commands, bootstrap):
+    # Shared database models and operational management commands:
     "infrastructure.database.apps.DatabaseConfig",
     # "apps.reporting",  # Phase 2 — not activated until reporting domain is implemented
 ]
@@ -131,21 +131,19 @@ TEMPLATES = [
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Database — discrete PostgreSQL credentials (no DATABASE_URL)
+# Database — PostgreSQL is provisioned outside Django
 # ──────────────────────────────────────────────────────────────────────────────
-from infrastructure.database.bootstrap import build_postgres_config  # noqa: E402
-
-POSTGRES_MAINTENANCE_DB = env("POSTGRES_MAINTENANCE_DB", default="postgres")
-_POSTGRES = build_postgres_config(
-    db_name=env("POSTGRES_DB", default="fmms"),
-    user=env("POSTGRES_USER", default="fmms"),
-    password=env("POSTGRES_PASSWORD", default="fmms"),
-    host=env("POSTGRES_HOST", default="localhost"),
-    port=env("POSTGRES_PORT", default="5432"),
-    maintenance_db=POSTGRES_MAINTENANCE_DB,
-)
-DATABASES = {"default": _POSTGRES.as_django_database()}
-DATABASES["default"]["ATOMIC_REQUESTS"] = True  # Wrap every request in a transaction
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("POSTGRES_DB"),
+        "USER": env("POSTGRES_USER"),
+        "PASSWORD": env("POSTGRES_PASSWORD"),
+        "HOST": env("POSTGRES_HOST"),
+        "PORT": env.int("POSTGRES_PORT", default=5432),
+        "ATOMIC_REQUESTS": True,
+    }
+}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Cache — Redis

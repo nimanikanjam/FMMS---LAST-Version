@@ -25,12 +25,11 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.demo
       DEBUG: "False"
       ALLOWED_HOSTS: "*"
-      POSTGRES_HOST: ${POSTGRES_HOST:-host.docker.internal}
+      POSTGRES_HOST: ${POSTGRES_DOCKER_HOST:-host.docker.internal}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-fmms}
       POSTGRES_USER: ${POSTGRES_USER:-fmms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fmms}
-      POSTGRES_MAINTENANCE_DB: ${POSTGRES_MAINTENANCE_DB:-postgres}
       CELERY_BROKER_URL: memory://
       SAP_USE_MOCK: ${SAP_USE_MOCK:-True}
       SAP_BASE_URL: ${SAP_BASE_URL:-http://ghsapsnd-app.gbgnetwork.net:8000/sap/opu/odata/sap}
