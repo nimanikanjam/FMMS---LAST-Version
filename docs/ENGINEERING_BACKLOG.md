@@ -203,7 +203,79 @@
 | AUTH-009 | P2 | Decision | role source | local role یا mapping از group/claim با least privilege |
 | AUTH-010 | P2 | Decision | رفتار قطعی IdP/SAP | session موجود، login جدید و break-glass admin مشخص |
 
-## ۹. موارد انجام‌شده تاریخی
+## ۹. Code Review شناسه اصلی مدل‌ها
+
+### DB-002 — انتخاب UUID یا BigAutoField برای هر مدل
+
+- شدت: 🟡 Medium
+- وضعیت: Review per model
+- محل: `infrastructure/database/model_mixins.py` و تمام مدل‌های ORM جدید یا در حال بازطراحی
+- مسئله: استفاده از `UUIDPrimaryKeyMixin` نباید برای تمام جدول‌ها یک قانون خودکار باشد. مدل‌های فعلی برای جلوگیری از migration و breaking change همچنان از `BusinessRecordModel` استفاده می‌کنند، اما هر مدل جدید باید جداگانه بررسی شود.
+
+#### معیار انتخاب UUID
+
+UUID معمولاً برای aggregate root یا entity مستقلی مناسب است که حداقل یکی از شرایط زیر را داشته باشد:
+
+- شناسه آن در API، Celery، event، audit log یا SAP transaction مبادله می‌شود.
+- قبل از اولین `INSERT` به شناسه نیاز دارد؛ مانند ساخت idempotency key.
+- داده ممکن است میان چند محیط، سرویس یا منبع import/merge شود.
+- حدس‌زدن ترتیب و تعداد رکوردها از روی URL مطلوب نیست.
+- رکورد مستقل است و lifecycle آن فقط تابع یک parent نیست.
+
+نمونه قابل‌قبول:
+
+```python
+class RepairOrderModel(
+    UUIDPrimaryKeyMixin,
+    TimestampMixin,
+    UserAuditMixin,
+    SoftDeleteMixin,
+):
+    order_number = models.CharField(max_length=30, unique=True)
+```
+
+در این مثال `id` شناسه فنی، `order_number` شناسه قابل‌نمایش کسب‌وکار و شماره سند SAP یک فیلد مستقل است؛ این سه نباید با هم ادغام شوند.
+
+#### معیار انتخاب BigAutoField
+
+شناسه عددی پیش‌فرض Django معمولاً برای جدول‌هایی مناسب‌تر است که:
+
+- child داخلی یک aggregate هستند و خارج از parent آدرس‌دهی نمی‌شوند.
+- شناسه آن‌ها وارد API عمومی، event، SAP یا integration contract نمی‌شود.
+- حجم درج بسیار بالا دارند و locality/index size مهم است.
+- merge مستقل داده میان چند منبع برای آن‌ها مطرح نیست.
+- فقط یک surrogate key ساده برای دیتابیس نیاز دارند.
+
+نمونه:
+
+```python
+class RepairOrderLine(TimestampMixin):
+    # Django automatically adds: id = BigAutoField(primary_key=True)
+    repair_order = models.ForeignKey(
+        RepairOrderModel,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+```
+
+#### سؤال‌های اجباری در Code Review
+
+1. آیا شناسه این مدل از مرز دیتابیس خارج می‌شود؟
+2. آیا قبل از ذخیره‌شدن رکورد به شناسه نیاز داریم؟
+3. آیا مدل aggregate root است یا child داخلی؟
+4. آیا business identifier مستقلی مانند `order_number` یا `sap_document_number` لازم است؟
+5. حجم درج و اثر نوع کلید بر PK/FK indexها چقدر است؟
+6. آیا تغییر نوع کلید برای مدل موجود، API یا migration شکستن‌پذیر ایجاد می‌کند؟
+
+#### معیار پذیرش
+
+- انتخاب نوع PK در PR مدل جدید با پاسخ کوتاه به سؤال‌های بالا مستند شود.
+- UUID صرفاً برای یکسان‌بودن با مدل‌های قدیمی انتخاب نشود.
+- مدل موجود بدون برنامه migration، بررسی FKها و قرارداد API از UUID به عدد یا برعکس تغییر نکند.
+- benchmark فقط برای جدول پرتراکنش لازم است؛ تصمیم‌های عادی با الگوی دسترسی و مرزهای مدل گرفته شوند.
+- دانستن UUID هرگز جایگزین object-level permission محسوب نشود.
+
+## ۱۰. موارد انجام‌شده تاریخی
 
 این بخش برای جلوگیری از باز شدن دوباره taskهای بسته نگهداری می‌شود، ولی جای commit history را نمی‌گیرد:
 
@@ -217,7 +289,7 @@
 - domain exception translation و error contract مرکزی ایجاد شد.
 - تست‌های domain، repository، API و SAP mock گسترش یافتند.
 
-## ۱۰. ترتیب اجرای پیشنهادی
+## ۱۱. ترتیب اجرای پیشنهادی
 
 ### مرحله شناخت و تثبیت
 
@@ -243,7 +315,7 @@
 2. `DB-003`, `ARCH-001` تا `ARCH-004`
 3. OpenAPI، typing، dependency lock و runbook
 
-## ۱۱. نحوه بستن یک مورد
+## ۱۲. نحوه بستن یک مورد
 
 برای تغییر وضعیت به Done این اطلاعات ثبت شود:
 
