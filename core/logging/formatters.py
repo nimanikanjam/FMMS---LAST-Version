@@ -11,6 +11,8 @@ import traceback
 from datetime import UTC, datetime
 from typing import Any
 
+from core.logging.redaction import redact
+
 
 class FMMSJSONFormatter(logging.Formatter):
     """
@@ -85,4 +87,4 @@ class FMMSJSONFormatter(logging.Formatter):
                 if not key.startswith("_"):
                     log_entry[key] = value
 
-        return json.dumps(log_entry, default=str, ensure_ascii=False)
+        return json.dumps(redact(log_entry), default=str, ensure_ascii=False)
