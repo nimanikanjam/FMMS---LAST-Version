@@ -42,6 +42,9 @@ from core.logging.structured_logger import get_structured_logger
 logger = get_structured_logger("repair", __name__)
 
 _REPAIRABLE_MESSAGE = "نیاز به تعمیر تأیید شد؛ سفارش کار PM ایجاد و تعمیر آغاز شد."
+_REPAIRABLE_LOCAL_MESSAGE = (
+    "نیاز به تعمیر تأیید شد؛ تعمیر محلی بدون ایجاد سفارش کار SAP آغاز شد."
+)
 _NO_REPAIR_MESSAGE = "عدم نیاز به تعمیر ثبت شد؛ خودرو به راننده تحویل داده می‌شود."
 
 
@@ -62,7 +65,7 @@ class WorkshopTechnicalDecisionService:
         repair_order_repository: IRepairOrderRepository,
         vehicle_repository: IVehicleRepository,
         fault_repository: IFaultRepository,
-        sync_repair_to_sap_service: SyncRepairToSAPService,
+        sync_repair_to_sap_service: SyncRepairToSAPService | None,
         handover_repository: IVehicleHandoverRepository,
         event_recorder: RecordRepairOrderEventService | None = None,
     ) -> None:
@@ -112,17 +115,19 @@ class WorkshopTechnicalDecisionService:
         self, dto: WorkshopTechnicalDecisionDTO
     ) -> RepairDecisionResponseDTO:
         """Confirm repair needed, create PM Order, start repair under UNDER_REPAIR."""
-        # Create PM Order while still in workshop queue, then start repair.
-        self._sync_sap.execute(
-            SyncRepairToSAPDTO(
-                repair_order_id=dto.repair_order_id,
-                order_type="PM01",
-                description=dto.note or "Central workshop repair order",
-                planned_start=datetime.now(tz=UTC),
-                request_id=dto.request_id,
-                requested_by=dto.decided_by,
+        sap_sync_enabled = self._sync_sap is not None
+        if self._sync_sap is not None:
+            # Create PM Order while still in workshop queue, then start repair.
+            self._sync_sap.execute(
+                SyncRepairToSAPDTO(
+                    repair_order_id=dto.repair_order_id,
+                    order_type="PM01",
+                    description=dto.note or "Central workshop repair order",
+                    planned_start=datetime.now(tz=UTC),
+                    request_id=dto.request_id,
+                    requested_by=dto.decided_by,
+                )
             )
-        )
 
         order = self._repo.get_by_id(dto.repair_order_id)
         order.mark_repairable(dto.note or None)
@@ -164,7 +169,7 @@ class WorkshopTechnicalDecisionService:
             self._event_recorder,
             saved.id,
             RepairOrderEventType.REPAIRABLE_CONFIRMED,
-            _REPAIRABLE_MESSAGE,
+            _REPAIRABLE_MESSAGE if sap_sync_enabled else _REPAIRABLE_LOCAL_MESSAGE,
             created_by_id=dto.decided_by,
             request_id=dto.request_id,
         )
@@ -189,7 +194,9 @@ class WorkshopTechnicalDecisionService:
         return RepairDecisionResponseDTO(
             id=saved.id,
             status=saved.status,
-            message=_REPAIRABLE_MESSAGE,
+            message=(
+                _REPAIRABLE_MESSAGE if sap_sync_enabled else _REPAIRABLE_LOCAL_MESSAGE
+            ),
             workshop_type=saved.workshop_type,
             workshop_id=saved.workshop_id,
         )

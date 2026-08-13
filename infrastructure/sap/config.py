@@ -9,13 +9,13 @@ Required environment variables (when ``SAP_USE_MOCK`` is ``False``):
     SAP_CLIENT        — SAP client/mandant code (e.g. 100)
     SAP_USERNAME      — SAP technical user login
     SAP_PASSWORD      — SAP technical user password
-    SAP_ASHOST        — SAP application server hostname (for BAPI/RFC)
-    SAP_SYSNR         — SAP system number (e.g. 00)
+    SAP_ASHOST        — SAP application server hostname (when SAP_WRITE=True)
+    SAP_SYSNR         — SAP system number (when SAP_WRITE=True; default: 00)
 
 Optional environment variables:
     SAP_TIMEOUT_SECONDS — HTTP request timeout (default: 30)
     SAP_USE_MOCK        — Use MockSAPClient instead of real SAP (default: True)
-    SAP_WRITE / SAP_write — Enable BAPI write calls (default: True)
+    SAP_WRITE / SAP_write — Enable SAP write integrations (default: True)
     SAP_LANG            — SAP logon language (default: EN)
     SAP_VERIFY_SSL      — Verify SAP HTTPS certificates (default: True)
     SAP_VEHICLE_DRIVER_SERVICE — Vehicle-driver OData service
@@ -158,10 +158,11 @@ class SAPConfig:
                     ("SAP_CLIENT", client),
                     ("SAP_USERNAME", username),
                     ("SAP_PASSWORD", password),
-                    ("SAP_ASHOST", ashost),
                 ]
                 if not val
             ]
+            if write_enabled and not ashost:
+                missing.append("SAP_ASHOST")
             if missing:
                 raise ImproperlyConfigured(
                     f"SAP_USE_MOCK is False but the following required environment "
@@ -210,6 +211,6 @@ def _env_first(*names: str, default: str) -> str:
     """Return the first non-empty environment value from ``names``."""
     for name in names:
         value = os.environ.get(name)
-        if value not in (None, ""):
+        if value:
             return value.strip()
     return default

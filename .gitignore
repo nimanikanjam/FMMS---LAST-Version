@@ -123,6 +123,9 @@ dump.rdb
 /static/
 /mediafiles/media/
 
+# Generated reports and visual QA previews
+/outputs/
+
 # Temporary files
 *.tmp
 *.bak

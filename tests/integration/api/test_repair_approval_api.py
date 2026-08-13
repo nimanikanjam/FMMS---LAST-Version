@@ -7,6 +7,10 @@ import uuid
 import pytest
 from rest_framework.test import APIClient
 
+from apps.fault.infrastructure.models import FaultModel
+from apps.integration.infrastructure.models import SAPTransactionModel
+from apps.repair.infrastructure.models import RepairOrderModel
+from apps.vehicle.infrastructure.models import VehicleModel
 from tests.integration.api.conftest import create_repair_order_via_distribution
 
 pytestmark = pytest.mark.django_db
@@ -268,3 +272,57 @@ class TestRepairAssignWorkshopAPI:
             format="json",
         )
         assert response.status_code == 403
+
+
+class TestReadOnlySAPWorkshopDecisionAPI:
+    """Keep the local workshop workflow available when SAP writes are disabled."""
+
+    def test_repairable_decision_starts_local_repair_without_sap_transaction(
+        self,
+        authenticated_client: APIClient,
+        workshop_supervisor_client: APIClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("SAP_USE_MOCK", "False")
+        monkeypatch.setenv("SAP_WRITE", "False")
+        monkeypatch.setenv("SAP_BASE_URL", "https://sap.example.test")
+        monkeypatch.setenv("SAP_CLIENT", "100")
+        monkeypatch.setenv("SAP_USERNAME", "readonly-user")
+        monkeypatch.setenv("SAP_PASSWORD", "readonly-password")
+        monkeypatch.setenv("SAP_ASHOST", "sap.example.test")
+
+        order = _create_repair_order(
+            authenticated_client,
+            "12LOCAL1",
+            "1HGCM82633A004390",
+        )
+        approved = authenticated_client.post(
+            f"/api/v1/repair-orders/{order['id']}/approve/",
+            {},
+            format="json",
+        )
+        assert approved.status_code == 200, approved.data
+        assigned = authenticated_client.post(
+            f"/api/v1/repair-orders/{order['id']}/assign-workshop/",
+            {"workshop_type": "INTERNAL", "workshop_id": "WS-LOCAL"},
+            format="json",
+        )
+        assert assigned.status_code == 200, assigned.data
+
+        decision = workshop_supervisor_client.post(
+            f"/api/v1/repair-orders/{order['id']}/technical-decision/",
+            {"repairable": True, "note": "Proceed with local repair"},
+            format="json",
+        )
+
+        assert decision.status_code == 200, decision.data
+        assert decision.data["status"] == "IN_PROGRESS"
+        assert "بدون ایجاد سفارش کار SAP" in decision.data["message"]
+        persisted = RepairOrderModel.objects.get(id=order["id"])
+        assert persisted.status == "IN_PROGRESS"
+        assert not persisted.sap_order_number
+        assert (
+            VehicleModel.objects.get(id=persisted.vehicle_id).status == "UNDER_REPAIR"
+        )
+        assert FaultModel.objects.get(id=persisted.fault_id).status == "IN_REPAIR"
+        assert SAPTransactionModel.objects.filter(object_id=persisted.id).count() == 0

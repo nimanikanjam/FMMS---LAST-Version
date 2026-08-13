@@ -57,6 +57,9 @@ class SAPTransactionManager(ISAPTransactionManager):
 
     Args:
         repository: The ``ISAPTransactionRepository`` used to persist transaction state.
+        writes_enabled: Global outbound-write gate loaded from ``SAP_WRITE`` by
+            the composition root. When disabled, no repository or adapter call
+            is made.
 
     Example::
 
@@ -73,10 +76,11 @@ class SAPTransactionManager(ISAPTransactionManager):
     def __init__(
         self,
         repository: ISAPTransactionRepository,
-        write_enabled: bool = True,
+        *,
+        writes_enabled: bool = True,
     ) -> None:
         self._repo = repository
-        self._write_enabled = write_enabled
+        self._writes_enabled = writes_enabled
 
     # ------------------------------------------------------------------
     # Public API
@@ -113,18 +117,7 @@ class SAPTransactionManager(ISAPTransactionManager):
             SAPIntegrationError: If the SAP call fails after recording the
                 failure in the transaction.
         """
-        if not self._write_enabled:
-            logger.info(
-                "Skipping SAP BAPI write because SAP_WRITE is disabled",
-                extra={
-                    "object_type": object_type,
-                    "object_id": str(object_id),
-                    "idempotency_key": idempotency_key,
-                    "domain": "integration",
-                },
-            )
-            return {"sap_write_skipped": True}, ""
-
+        self._ensure_writes_enabled()
         existing = self._repo.get_by_idempotency_key(idempotency_key)
         if existing is not None:
             return self._handle_existing(
@@ -165,16 +158,7 @@ class SAPTransactionManager(ISAPTransactionManager):
             SAPRetryExhaustedError: If ``can_retry`` is ``False`` (max retries reached).
             SAPIntegrationError: If the retry attempt also fails.
         """
-        if not self._write_enabled:
-            logger.info(
-                "Skipping SAP BAPI retry because SAP_WRITE is disabled",
-                extra={
-                    "transaction_id": str(transaction_id),
-                    "domain": "integration",
-                },
-            )
-            return {"sap_write_skipped": True}, ""
-
+        self._ensure_writes_enabled()
         transaction = self._repo.get_by_id(transaction_id)
 
         if not transaction.can_retry:
@@ -222,6 +206,13 @@ class SAPTransactionManager(ISAPTransactionManager):
         Args:
             adapter_call_map: Maps each ``SAPObjectType`` to its adapter callable.
         """
+        if not self._writes_enabled:
+            logger.info(
+                "Skipping SAP retry sweep because writes are disabled",
+                extra={"domain": "integration"},
+            )
+            return
+
         pending = self._repo.list_pending_for_retry()
         logger.info(
             "Starting SAP retry sweep",
@@ -254,6 +245,11 @@ class SAPTransactionManager(ISAPTransactionManager):
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _ensure_writes_enabled(self) -> None:
+        """Fail before persistence or transport when SAP writes are disabled."""
+        if not self._writes_enabled:
+            raise SAPIntegrationError("SAP writes are disabled by SAP_WRITE=False.")
 
     def _handle_existing(
         self,

@@ -388,18 +388,18 @@ export const icons3d = {
   settings: Settings3D as unknown as SvgIconComponent,
 } as const;
 
-export {
-  Dashboard3D as Dashboard,
-  Car3D as DirectionsCar,
-  Checklist3D as FactCheck,
-  Widgets3D as Widgets,
-  People3D as PeopleAlt,
-  Alert3D as ReportProblem,
-  CarRepair3D as CarRepair,
-  Handshake3D as Handshake,
-  Truck3D as LocalShipping,
-  Wrench3D as Build,
-  Box3D as Inventory2,
-  Sync3D as Sync,
-  Settings3D as Settings,
-};
+// Public aliases mirror MUI icon exports so existing shared component contracts
+// accept the custom icons without weakening their types across the application.
+export const Dashboard = Dashboard3D as unknown as SvgIconComponent;
+export const DirectionsCar = Car3D as unknown as SvgIconComponent;
+export const FactCheck = Checklist3D as unknown as SvgIconComponent;
+export const Widgets = Widgets3D as unknown as SvgIconComponent;
+export const PeopleAlt = People3D as unknown as SvgIconComponent;
+export const ReportProblem = Alert3D as unknown as SvgIconComponent;
+export const CarRepair = CarRepair3D as unknown as SvgIconComponent;
+export const Handshake = Handshake3D as unknown as SvgIconComponent;
+export const LocalShipping = Truck3D as unknown as SvgIconComponent;
+export const Build = Wrench3D as unknown as SvgIconComponent;
+export const Inventory2 = Box3D as unknown as SvgIconComponent;
+export const Sync = Sync3D as unknown as SvgIconComponent;
+export const Settings = Settings3D as unknown as SvgIconComponent;

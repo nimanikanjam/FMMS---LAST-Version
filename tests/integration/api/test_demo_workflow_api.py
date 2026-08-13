@@ -8,6 +8,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.fault.infrastructure.models import FaultItemModel, FaultModel
+from apps.material.infrastructure.models import CentralStockModel
 from apps.repair.infrastructure.models import RepairOrderModel
 from apps.vehicle.domain.entities import VehicleStatus
 from apps.vehicle.infrastructure.models import VehicleModel
@@ -49,7 +50,9 @@ class TestInspectionTemplateSAPSyncAPI:
         descriptions = {item["code_text"] for item in results}
         assert all("group_text" in item and "code_text" in item for item in results)
         assert all("code_group" in item and "code" in item for item in results)
-        assert all("GroupText" not in item and "CodeText" not in item for item in results)
+        assert all(
+            "GroupText" not in item and "CodeText" not in item for item in results
+        )
         assert all("CodeGroup" not in item and "Code" not in item for item in results)
         assert "ترمز جلو" in descriptions
         assert "چراغ جلو" in descriptions
@@ -118,6 +121,35 @@ class TestCentralStockAPI:
         assert all(item["storage_location"] == "KH08" for item in results)
         assert all("quantity" in item for item in results)
         assert any(item["material_code"] == "60001764" for item in results)
+
+    def test_list_includes_material_description_for_frontend_picker(
+        self,
+        authenticated_client: APIClient,
+    ) -> None:
+        CentralStockModel.objects.create(
+            material="000000000060009999",
+            plant="1000",
+            storage_location="KH08",
+            inventory_stock_type="01",
+            material_code="60009999",
+            material_name="فیلتر روغن",
+            inventory_stock_type_text="Unrestricted-Use Stock",
+            quantity="7.000",
+            base_unit="EA",
+            stock_value="0.00",
+            display_currency="IRR",
+            is_active=True,
+        )
+
+        listed = authenticated_client.get(
+            "/api/v1/central-stock/?storage_location=KH08&search=فیلتر روغن"
+        )
+
+        assert listed.status_code == 200, listed.data
+        results = listed.data["results"] if "results" in listed.data else listed.data
+        assert len(results) == 1
+        assert results[0]["material_code"] == "60009999"
+        assert results[0]["material_name"] == "فیلتر روغن"
 
 
 class TestDriverInspectionWorkflowAPI:

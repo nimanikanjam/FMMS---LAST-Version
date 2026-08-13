@@ -144,25 +144,6 @@ class TestSAPTransactionManagerSuccessPath:
         assert final_tx.status == SAPTransactionStatus.SUCCESS
         assert final_tx.sap_document_number == "10000099"
 
-    def test_execute_skips_adapter_when_writes_are_disabled(self) -> None:
-        repo = MagicMock()
-        adapter_spy = MagicMock(return_value=({"NOTIFNO": "10000099"}, "10000099"))
-
-        manager = SAPTransactionManager(repository=repo, write_enabled=False)
-        response, doc_number = manager.execute(
-            object_type=SAPObjectType.FAULT,
-            object_id=uuid.uuid4(),
-            idempotency_key="fault-notif-disabled",
-            request_payload={"equipment": "10000001"},
-            adapter_call=adapter_spy,
-        )
-
-        assert response == {"sap_write_skipped": True}
-        assert doc_number == ""
-        adapter_spy.assert_not_called()
-        repo.get_by_idempotency_key.assert_not_called()
-        repo.save.assert_not_called()
-
 
 # ---------------------------------------------------------------------------
 # Failure path
@@ -206,6 +187,53 @@ class TestSAPTransactionManagerFailurePath:
         final_tx = saved_transactions[-1]
         assert final_tx.status == SAPTransactionStatus.FAILED
         assert "SAP rejected" in (final_tx.error_message or "")
+
+
+# ---------------------------------------------------------------------------
+# Global write gate
+# ---------------------------------------------------------------------------
+
+
+class TestSAPTransactionManagerWriteGate:
+    """SAP_WRITE=False blocks persistence, adapter calls, and retry queries."""
+
+    def test_execute_is_blocked_before_repository_or_adapter_call(self) -> None:
+        repo = MagicMock()
+        adapter = MagicMock()
+        manager = SAPTransactionManager(repository=repo, writes_enabled=False)
+
+        with pytest.raises(SAPIntegrationError, match="SAP_WRITE=False"):
+            manager.execute(
+                object_type=SAPObjectType.FAULT,
+                object_id=uuid.uuid4(),
+                idempotency_key="disabled-write",
+                request_payload={},
+                adapter_call=adapter,
+            )
+
+        repo.assert_not_called()
+        adapter.assert_not_called()
+
+    def test_retry_is_blocked_before_repository_or_adapter_call(self) -> None:
+        repo = MagicMock()
+        adapter = MagicMock()
+        manager = SAPTransactionManager(repository=repo, writes_enabled=False)
+
+        with pytest.raises(SAPIntegrationError, match="SAP_WRITE=False"):
+            manager.retry(uuid.uuid4(), adapter)
+
+        repo.assert_not_called()
+        adapter.assert_not_called()
+
+    def test_retry_sweep_is_a_noop_when_writes_are_disabled(self) -> None:
+        repo = MagicMock()
+        adapter = MagicMock()
+        manager = SAPTransactionManager(repository=repo, writes_enabled=False)
+
+        manager.retry_all_pending({SAPObjectType.FAULT: adapter})
+
+        repo.assert_not_called()
+        adapter.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -345,19 +373,6 @@ class TestSAPTransactionManagerRetry:
 
         final_tx = saved[-1]
         assert final_tx.status == SAPTransactionStatus.FAILED
-
-    def test_retry_skips_adapter_when_writes_are_disabled(self) -> None:
-        repo = MagicMock()
-        adapter_spy = MagicMock(return_value=({"NOTIFNO": "10000099"}, "10000099"))
-
-        manager = SAPTransactionManager(repository=repo, write_enabled=False)
-        response, doc_number = manager.retry(uuid.uuid4(), adapter_spy)
-
-        assert response == {"sap_write_skipped": True}
-        assert doc_number == ""
-        adapter_spy.assert_not_called()
-        repo.get_by_id.assert_not_called()
-        repo.save.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

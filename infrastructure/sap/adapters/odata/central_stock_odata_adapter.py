@@ -63,17 +63,20 @@ class CentralStockODataAdapter(ISAPCentralStockPort):
                 f"Failed to list central warehouse stock: {exc}"
             ) from exc
 
-        return [self._map_single(item) for item in _parse_simple_table_xml(xml_text)]
+        rows = [self._map_single(item) for item in _parse_simple_table_xml(xml_text)]
+        return _deduplicate_stock_rows(rows)
 
     @staticmethod
     def _map_single(data: dict[str, Any]) -> SAPCentralStockDTO:
         """Map a raw SAP stock record to ``SAPCentralStockDTO``."""
+        material = _normalize_material(str(data.get("Material", "")).strip())
+        material_code = str(data.get("MaterialCode", "")).strip()
         return SAPCentralStockDTO(
-            material=str(data.get("Material", "")).strip(),
+            material=material,
             plant=str(data.get("Plant", "")).strip(),
             storage_location=str(data.get("StorageLocation", "")).strip(),
             inventory_stock_type=str(data.get("InventoryStockType", "")).strip(),
-            material_code=str(data.get("MaterialCode", "")).strip(),
+            material_code=material_code or (material.lstrip("0") or "0"),
             material_name=_material_name_from_row(data),
             inventory_stock_type_text=str(
                 data.get("InventoryStockTypeText", "")
@@ -83,6 +86,72 @@ class CentralStockODataAdapter(ISAPCentralStockPort):
             stock_value=_to_decimal(data.get("StockValueInDisplayCurrency")),
             display_currency=str(data.get("DisplayCurrency", "")).strip(),
         )
+
+
+def _normalize_material(raw: str) -> str:
+    """Normalize numeric SAP material keys to their canonical 18 characters."""
+    if raw.isdigit() and len(raw) <= 18:
+        return raw.zfill(18)
+    return raw
+
+
+def _deduplicate_stock_rows(
+    rows: list[SAPCentralStockDTO],
+) -> list[SAPCentralStockDTO]:
+    """Collapse CDS join duplicates to one preferred row per SAP key.
+
+    The legacy sync already produced last-row-wins behavior because repeated
+    keys were saved sequentially. Deduplicating here avoids redundant writes;
+    when only valuation differs, the populated valuation is retained.
+    """
+    unique: dict[tuple[str, str, str, str], SAPCentralStockDTO] = {}
+    for row in rows:
+        key = (
+            row.material,
+            row.plant,
+            row.storage_location,
+            row.inventory_stock_type,
+        )
+        existing = unique.get(key)
+        if existing is not None and existing != row:
+            logger.warning(
+                "Conflicting duplicate central-stock row; selecting preferred row",
+                extra={
+                    "material": row.material,
+                    "plant": row.plant,
+                    "storage_location": row.storage_location,
+                    "inventory_stock_type": row.inventory_stock_type,
+                    "domain": "integration",
+                },
+            )
+            unique[key] = _prefer_duplicate(existing, row)
+        else:
+            unique[key] = row
+    return list(unique.values())
+
+
+def _prefer_duplicate(
+    existing: SAPCentralStockDTO,
+    incoming: SAPCentralStockDTO,
+) -> SAPCentralStockDTO:
+    """Keep a populated valuation when duplicate rows differ only by stock value."""
+    if (
+        existing.material == incoming.material
+        and existing.plant == incoming.plant
+        and existing.storage_location == incoming.storage_location
+        and existing.inventory_stock_type == incoming.inventory_stock_type
+        and existing.material_code == incoming.material_code
+        and existing.material_name == incoming.material_name
+        and existing.inventory_stock_type_text == incoming.inventory_stock_type_text
+        and existing.quantity == incoming.quantity
+        and existing.base_unit == incoming.base_unit
+        and existing.display_currency == incoming.display_currency
+    ):
+        return max(
+            (existing, incoming),
+            key=lambda item: abs(item.stock_value),
+        )
+    return incoming
 
 
 def _material_name_from_row(data: dict[str, Any]) -> str:
@@ -113,8 +182,17 @@ def _to_decimal(raw: Any) -> Decimal:
 
 
 def _parse_simple_table_xml(xml_text: str) -> list[dict[str, str]]:
-    """Parse SAP XML shaped as ``Root/Columns/Rows`` into dictionaries."""
+    """Parse legacy table XML or a standard OData v2 Atom feed.
+
+    SAP's mock/export fixtures use ``Root/Columns/Rows`` while the live
+    Gateway returns ``feed/entry/content/m:properties``. Supporting both
+    formats keeps local fixtures backward-compatible with the real service.
+    """
     root = ET.fromstring(xml_text)  # noqa: S314
+
+    if _local_name(root.tag) == "feed":
+        return _parse_atom_feed(root)
+
     columns = [
         str(column.attrib.get("Name", "")).strip()
         for column in root.findall("./Columns/Column")
@@ -130,3 +208,33 @@ def _parse_simple_table_xml(xml_text: str) -> list[dict[str, str]]:
             }
         )
     return rows
+
+
+def _parse_atom_feed(root: ET.Element) -> list[dict[str, str]]:
+    """Map OData Atom entries to property dictionaries."""
+    rows: list[dict[str, str]] = []
+    for entry in root.iter():
+        if _local_name(entry.tag) != "entry":
+            continue
+        properties = next(
+            (
+                element
+                for element in entry.iter()
+                if _local_name(element.tag) == "properties"
+            ),
+            None,
+        )
+        if properties is None:
+            continue
+        rows.append(
+            {
+                _local_name(property_element.tag): (property_element.text or "").strip()
+                for property_element in properties
+            }
+        )
+    return rows
+
+
+def _local_name(tag: str) -> str:
+    """Return an XML tag without its namespace."""
+    return tag.rsplit("}", 1)[-1]

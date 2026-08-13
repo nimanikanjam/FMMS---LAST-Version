@@ -185,6 +185,36 @@ def test_repairable_creates_pm_and_under_repair() -> None:
     assert fault.status == FaultStatus.IN_REPAIR
 
 
+def test_repairable_without_sap_write_starts_local_repair() -> None:
+    vehicle = _vehicle()
+    fault = _fault(vehicle.id)
+    order = _order(vehicle.id, fault.id)
+    repair_repo = FakeRepairRepo([order])
+    service = WorkshopTechnicalDecisionService(
+        repair_repo,
+        FakeVehicleRepo([vehicle]),
+        FakeFaultRepo([fault]),
+        None,
+        FakeHandoverRepo(),
+    )
+
+    result = service.execute(
+        WorkshopTechnicalDecisionDTO(
+            repair_order_id=order.id,
+            repairable=True,
+            request_id="req-local",
+            decided_by=uuid.uuid4(),
+            note="local read-only SAP test",
+        )
+    )
+
+    assert result.status == RepairOrderStatus.IN_PROGRESS
+    assert "بدون ایجاد سفارش کار SAP" in result.message
+    assert repair_repo.get_by_id(order.id).sap_order_number is None
+    assert vehicle.status == VehicleStatus.UNDER_REPAIR
+    assert fault.status == FaultStatus.IN_REPAIR
+
+
 def test_no_repair_needed_releases_vehicle() -> None:
     vehicle = _vehicle()
     fault = _fault(vehicle.id)

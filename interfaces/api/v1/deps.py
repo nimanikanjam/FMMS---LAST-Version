@@ -277,27 +277,35 @@ from infrastructure.sap.adapters.odata.object_part_catalog_odata_adapter import 
 from infrastructure.sap.adapters.odata.vehicle_driver_odata_adapter import (
     VehicleDriverODataAdapter,
 )
+from infrastructure.sap.client.bapi_client import SAPBAPIClient
+from infrastructure.sap.client.base import ISAPClient
+from infrastructure.sap.client.disabled_client import DisabledSAPWriteClient
 from infrastructure.sap.client.mock.mock_client import MockSAPClient
 from infrastructure.sap.client.odata_client import SAPODataClient
 from infrastructure.sap.config import SAPConfig
 from infrastructure.sap.transaction.sap_transaction_manager import SAPTransactionManager
 
 
-def _sap_client() -> MockSAPClient:
-    """Build the default mock SAP client for API composition.
+def _sap_client() -> ISAPClient:
+    """Build the SAP client used exclusively by outbound write adapters.
 
     Returns:
-        A ``MockSAPClient`` when ``SAP_USE_MOCK`` is enabled.
-
-    Raises:
-        RuntimeError: If mock mode is disabled for this composition root.
+        ``DisabledSAPWriteClient`` when ``SAP_WRITE`` is false,
+        ``MockSAPClient`` in mock mode, or ``SAPBAPIClient`` for live RFC/BAPI.
     """
     config = SAPConfig.from_env()
-    if not config.use_mock:
-        raise RuntimeError(
-            "The API v1 composition root currently requires SAP_USE_MOCK=True."
-        )
-    return MockSAPClient()
+    if not config.write_enabled:
+        return DisabledSAPWriteClient()
+    if config.use_mock:
+        return MockSAPClient()
+    return SAPBAPIClient(
+        ashost=config.ashost,
+        sysnr=config.sysnr,
+        client=config.client,
+        user=config.username,
+        passwd=config.password,
+        lang=config.lang,
+    )
 
 
 def _sap_odata_client() -> MockSAPClient | SAPODataClient:
@@ -313,6 +321,11 @@ def _sap_odata_client() -> MockSAPClient | SAPODataClient:
         timeout_seconds=config.timeout_seconds,
         verify_ssl=config.verify_ssl,
     )
+
+
+def _sap_writes_enabled() -> bool:
+    """Return whether outbound SAP write integrations are enabled."""
+    return SAPConfig.from_env().write_enabled
 
 
 def _vehicle_driver_adapter() -> VehicleDriverODataAdapter:
@@ -426,7 +439,7 @@ def get_sap_transaction_manager() -> SAPTransactionManager:
     """Return the sole SAP write gateway (composition-root wiring)."""
     return SAPTransactionManager(
         repository=get_sap_transaction_repository(),
-        write_enabled=SAPConfig.from_env().write_enabled,
+        writes_enabled=_sap_writes_enabled(),
     )
 
 
@@ -576,6 +589,13 @@ def get_submit_inspection_service() -> SubmitInspectionService:
 
 def get_report_inspection_fault_service() -> ReportInspectionFaultService:
     """Return ReportInspectionFaultService."""
+    if not _sap_writes_enabled():
+        return ReportInspectionFaultService(
+            get_inspection_repository(),
+            get_fault_repository(),
+            get_repair_order_repository(),
+            get_vehicle_repository(),
+        )
     client = _sap_client()
     return ReportInspectionFaultService(
         get_inspection_repository(),
@@ -662,6 +682,13 @@ def get_list_sap_sync_runs_service() -> ListSAPSyncRunsService:
 
 def get_report_fault_service() -> ReportFaultService:
     """Return ReportFaultService."""
+    if not _sap_writes_enabled():
+        return ReportFaultService(
+            get_fault_repository(),
+            get_vehicle_repository(),
+            get_repair_order_repository(),
+            get_user_profile_reader(),
+        )
     client = _sap_client()
     return ReportFaultService(
         get_fault_repository(),
@@ -701,6 +728,13 @@ def get_close_fault_service() -> CloseFaultService:
 
 def get_distribution_fault_decision_service() -> DistributionFaultDecisionService:
     """Return DistributionFaultDecisionService."""
+    if not _sap_writes_enabled():
+        return DistributionFaultDecisionService(
+            get_fault_repository(),
+            get_vehicle_repository(),
+            get_repair_order_repository(),
+            get_record_repair_order_event_service(),
+        )
     client = _sap_client()
     return DistributionFaultDecisionService(
         get_fault_repository(),
@@ -879,7 +913,7 @@ def get_workshop_technical_decision_service() -> WorkshopTechnicalDecisionServic
         get_repair_order_repository(),
         get_vehicle_repository(),
         get_fault_repository(),
-        get_sync_repair_to_sap_service(),
+        get_sync_repair_to_sap_service() if _sap_writes_enabled() else None,
         get_vehicle_handover_repository(),
         get_record_repair_order_event_service(),
     )
@@ -1151,6 +1185,12 @@ def get_list_pm_work_orders_service() -> ListPMWorkOrdersService:
 
 def get_trigger_pm_work_order_service() -> TriggerPMWorkOrderService:
     """Return TriggerPMWorkOrderService."""
+    if not _sap_writes_enabled():
+        return TriggerPMWorkOrderService(
+            get_pm_plan_repository(),
+            get_pm_work_order_repository(),
+            get_vehicle_repository(),
+        )
     return TriggerPMWorkOrderService(
         get_pm_plan_repository(),
         get_pm_work_order_repository(),
