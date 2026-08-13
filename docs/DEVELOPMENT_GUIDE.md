@@ -32,6 +32,8 @@ make worker
 make beat
 ```
 
+Commandهای عملیاتی سراسری در `infrastructure/operations/management/commands/` قرار می‌گیرند. `infrastructure/database/` یک Python package ساده برای primitiveهای ORM است و نباید فقط برای command discovery به Django app تبدیل شود.
+
 ## ۳. تنظیمات محیط
 
 | محیط | settings module |

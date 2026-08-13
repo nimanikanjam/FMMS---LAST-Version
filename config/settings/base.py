@@ -68,8 +68,8 @@ FMMS_APPS = [
     "apps.preventive_maintenance",
     "apps.procurement",
     "apps.integration",
-    # Shared database models and operational management commands:
-    "infrastructure.database.apps.DatabaseConfig",
+    # Project-wide operational management commands:
+    "infrastructure.operations.apps.OperationsConfig",
     # "apps.reporting",  # Phase 2 — not activated until reporting domain is implemented
 ]
 

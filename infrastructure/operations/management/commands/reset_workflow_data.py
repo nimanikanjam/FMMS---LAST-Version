@@ -1,7 +1,7 @@
-"""Management command: reset workflow/demo data while keeping selected masters.
+"""Reset workflow/demo data while keeping selected master records.
 
-Intended for local development when schema/workflow changes leave the DB in an
-inconsistent state. Only available when ``settings.DEBUG`` is True.
+This destructive operational command is restricted to environments with
+``settings.DEBUG`` enabled.
 """
 
 from __future__ import annotations
@@ -45,20 +45,19 @@ from apps.vehicle.infrastructure.models import (
     VehicleOdometerReadingModel,
 )
 
-# Delete order: children / dependents first where hard FKs exist; UUID refs
-# are unordered but we still clear leaf aggregates before roots for clarity.
+# Delete children/dependents first where hard foreign keys exist.
 _DELETE_TARGETS: tuple[tuple[str, type], ...] = (
     ("inventory_transaction", InventoryTransactionModel),
-    ("material_request", MaterialRequestModel),  # cascades items
+    ("material_request", MaterialRequestModel),
     ("vehicle_handover", VehicleHandoverModel),
     ("external_repair_invoice", ExternalRepairInvoiceModel),
     ("repair_order_event", RepairOrderEventModel),
-    ("repair_order", RepairOrderModel),  # cascades activities/parts
-    ("purchase_order", PurchaseOrderModel),  # cascades line items
-    ("purchase_requisition", PurchaseRequisitionModel),  # cascades line items
+    ("repair_order", RepairOrderModel),
+    ("purchase_order", PurchaseOrderModel),
+    ("purchase_requisition", PurchaseRequisitionModel),
     ("fault_item", FaultItemModel),
     ("fault", FaultModel),
-    ("inspection", InspectionModel),  # cascades checklist items
+    ("inspection", InspectionModel),
     ("pm_work_order", PMWorkOrderModel),
     ("pm_plan", PMPlanModel),
     ("sap_transaction", SAPTransactionModel),
@@ -73,7 +72,7 @@ _DELETE_TARGETS: tuple[tuple[str, type], ...] = (
 
 
 class Command(BaseCommand):
-    """Wipe operational workflow data and vehicles; keep templates and users."""
+    """Wipe operational workflow data and preserve templates and users."""
 
     help = (
         "DEBUG only: delete all workflow data (inspections, faults, repairs, "
@@ -109,7 +108,6 @@ class Command(BaseCommand):
 
         dry_run = bool(options.get("dry_run"))
         skip_confirm = bool(options.get("yes"))
-
         counts = self._collect_counts()
 
         self.stdout.write(self.style.WARNING("Tables that will be cleared:"))
@@ -133,11 +131,7 @@ class Command(BaseCommand):
 
         for label, deleted in deleted_summary:
             self.stdout.write(f"Deleted {label}: {deleted}")
-        self.stdout.write(
-            self.style.SUCCESS(
-                "Workflow data and vehicles cleared."
-            )
-        )
+        self.stdout.write(self.style.SUCCESS("Workflow data and vehicles cleared."))
 
     def _collect_counts(self) -> list[tuple[str, int]]:
         """Return (label, count) for each wipe target."""

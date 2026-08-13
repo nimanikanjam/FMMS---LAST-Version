@@ -25,7 +25,8 @@ apps/<domain>/domain/    entity، value object، exception و repository interfa
 apps/<domain>/application/ service، DTO و use case
 apps/<domain>/infrastructure/ ORM model، repository و migration
 interfaces/api/v1/       REST API v1 و composition فعلی dependencyها
-infrastructure/database/ mixinهای ORM و commandهای عملیاتی
+infrastructure/database/ primitiveها و mixinهای مشترک Django ORM
+infrastructure/operations/ commandها و ابزارهای عملیاتی سراسری
 infrastructure/sap/      client، adapter و transaction manager
 infrastructure/messaging/ Celery app و taskها
 tests/                   unit، integration و factory
