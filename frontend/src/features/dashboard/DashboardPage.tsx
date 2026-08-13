@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {Box, Card, CardActionArea, CardContent, Stack, Typography} from '@mui/material';
-import { ChevronLeft, ErrorOutline, Speed, TaskAlt } from '@mui/icons-material';
+import {ChevronLeft, ErrorOutline, Speed, TaskAlt} from '@mui/icons-material';
 import {
     Build,
     CarRepair,
@@ -152,8 +152,8 @@ export function DashboardPage() {
                 breadcrumbs={[{label: 'داشبورد'}]}
                 accentColor="secondary.main"
                 accentSide="right"
-                backgroundImage={`${API_ORIGIN}/media/dashboard.png`}
-backgroundSize="300px auto"
+                backgroundImage={`/dashboard-card-distribution.png`}
+                backgroundSize="300px auto"
                 backgroundPosition="left center"
             />
 
@@ -285,7 +285,7 @@ function SectionTitle({title}: { title: string }) {
             variant="subtitle1"
             fontWeight={900}
             sx={{
-                mt: { xs: 0.5, md: 1 },
+                mt: {xs: 0.5, md: 1},
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
@@ -297,9 +297,9 @@ function SectionTitle({title}: { title: string }) {
                     bgcolor: 'secondary.main',
                     flexShrink: 0,
                     boxShadow: (t) =>
-                      t.palette.mode === 'dark'
-                        ? '0 0 0 3px rgba(232,137,120,0.2)'
-                        : '0 0 0 3px rgba(196,87,61,0.15)',
+                        t.palette.mode === 'dark'
+                            ? '0 0 0 3px rgba(232,137,120,0.2)'
+                            : '0 0 0 3px rgba(196,87,61,0.15)',
                 },
             }}
         >
