@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import uuid
 
-from apps.authentication.domain.interfaces.user_profile_reader import IUserProfileReader
+from apps.authentication.application.ports.user_profile_reader import IUserProfileReader
 from apps.fault.application.dto.fault_dto import FaultResponseDTO
 from apps.fault.application.services.report_fault_service import _to_response_dto
 from apps.fault.domain.entities import FaultStatus

@@ -7,7 +7,7 @@ import uuid
 from django.contrib.auth import get_user_model
 
 from apps.authentication.application.dto.user_profile_dto import UserProfileSummaryDTO
-from apps.authentication.domain.interfaces.user_profile_reader import IUserProfileReader
+from apps.authentication.application.ports.user_profile_reader import IUserProfileReader
 
 
 class DjangoUserProfileReader(IUserProfileReader):

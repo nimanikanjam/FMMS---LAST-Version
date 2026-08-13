@@ -1,4 +1,4 @@
-"""Read-only port for resolving FMMS user profile summaries."""
+"""Read-only application port for resolving user profile summaries."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from apps.authentication.application.dto.user_profile_dto import UserProfileSumm
 
 
 class IUserProfileReader(ABC):
-    """Lookup user display metadata by UUID without leaking ORM types."""
+    """Resolve display metadata without exposing Django ORM models."""
 
     @abstractmethod
     def get_profile(self, user_id: uuid.UUID) -> UserProfileSummaryDTO | None:
-        """Return profile summary for ``user_id``, or ``None`` if not found."""
+        """Return an active user summary, or ``None`` when it does not exist."""

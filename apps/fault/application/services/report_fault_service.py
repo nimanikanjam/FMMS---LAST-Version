@@ -13,7 +13,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from apps.authentication.domain.interfaces.user_profile_reader import IUserProfileReader
+from apps.authentication.application.ports.user_profile_reader import IUserProfileReader
 from apps.fault.application.dto.fault_dto import (
     FaultItemResponseDTO,
     FaultResponseDTO,
@@ -246,7 +246,9 @@ class ReportFaultService:
 
 def _safe_parent_code(raw: str, fallback: str = _MULTI_FAULT_CODE) -> str:
     """Normalise a catalog code into a valid parent ``FaultCode`` value."""
-    cleaned = "".join(ch for ch in raw.strip().upper() if ch.isalnum() or ch == "-")[:20]
+    cleaned = "".join(ch for ch in raw.strip().upper() if ch.isalnum() or ch == "-")[
+        :20
+    ]
     if len(cleaned) >= 3:
         return cleaned
     return fallback
@@ -261,7 +263,9 @@ def _resolve_fault_payload(
     if not dto.items:
         return dto.code, dto.description, dto.severity, []
 
-    items = [_build_fault_item(fault_id=fault_id, item=item, now=now) for item in dto.items]
+    items = [
+        _build_fault_item(fault_id=fault_id, item=item, now=now) for item in dto.items
+    ]
     severities = [item.severity for item in dto.items]
     overall_severity = max(severities, key=lambda level: _SEVERITY_RANK[level])
 
@@ -310,7 +314,9 @@ def _create_sap_pm_notification(
     create_request = CreatePMNotificationRequest(
         equipment_number=vehicle_number,
         fault_description=fault.description.value,
-        defect_code=fault.sap_defect_code.value if fault.sap_defect_code else fault.code.value,
+        defect_code=(
+            fault.sap_defect_code.value if fault.sap_defect_code else fault.code.value
+        ),
         priority=_sap_priority(fault.severity),
         reported_by=str(fault.reported_by_id),
         reported_at=fault.reported_at,

@@ -53,10 +53,12 @@ def _extract_imports(source: str) -> list[str]:
 
 def _is_forbidden(import_name: str) -> bool:
     """Return True if the import name starts with a forbidden prefix."""
-    return any(
+    imports_forbidden_dependency = any(
         import_name == prefix or import_name.startswith(f"{prefix}.")
         for prefix in FORBIDDEN_IMPORT_PREFIXES
     )
+    imports_application_layer = ".application." in f".{import_name}."
+    return imports_forbidden_dependency or imports_application_layer
 
 
 @pytest.mark.parametrize("domain_file", _collect_domain_files())
