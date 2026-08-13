@@ -5,13 +5,13 @@ from __future__ import annotations
 from django.db import models
 
 from apps.driver.domain.entities import DriverStatus
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class DriverModel(BaseModel):
+class DriverModel(BusinessRecordModel):
     """Persistence model for a SAP-sourced fleet driver.
 
-    TODO: Split SAP master-data models from ``BaseModel`` once the shared audit
+    TODO: Select mixins for SAP master-data models once the shared audit
     model is reviewed. Drivers are never deleted by FMMS, so ``is_deleted`` is
     inherited for now but must not drive business visibility.
     """

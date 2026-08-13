@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class InspectionModel(BaseModel):
+class InspectionModel(BusinessRecordModel):
     """Persistence model for a vehicle inspection aggregate root."""
 
     vehicle_id = models.UUIDField(db_index=True)
@@ -47,7 +47,7 @@ class InspectionModel(BaseModel):
 class InspectionItemModel(models.Model):
     """Persistence model for a single checklist item within an inspection.
 
-    Does not extend BaseModel — items follow the lifecycle of their parent
+    Does not extend BusinessRecordModel — items follow their parent's lifecycle
     and are never soft-deleted independently.
     """
 
@@ -80,7 +80,7 @@ class InspectionItemModel(models.Model):
         return f"Item {self.item_id} [{self.result}]"
 
 
-class InspectionTemplateModel(BaseModel):
+class InspectionTemplateModel(BusinessRecordModel):
     """Local cache of SAP inspection-template catalog entries."""
 
     code_group = models.CharField(max_length=40, db_index=True)

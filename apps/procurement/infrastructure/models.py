@@ -10,10 +10,10 @@ from decimal import Decimal
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class PurchaseRequisitionModel(BaseModel):
+class PurchaseRequisitionModel(BusinessRecordModel):
     """Persistence model for a Purchase Requisition aggregate root."""
 
     repair_order_id = models.UUIDField(db_index=True)
@@ -74,13 +74,13 @@ class PRLineItemModel(models.Model):
         ]
 
 
-class PurchaseOrderModel(BaseModel):
+class PurchaseOrderModel(BusinessRecordModel):
     """Persistence model for a Purchase Order aggregate root."""
 
     pr_id = models.UUIDField(db_index=True)
     vendor_number = models.CharField(max_length=10, db_index=True)
     status = models.CharField(max_length=20, db_index=True)
-    # 'po_initiator_id' avoids the BaseModel.created_by FK attname clash.
+    # 'po_initiator_id' avoids the UserAuditMixin.created_by FK attname clash.
     po_initiator_id = models.UUIDField()
     sap_po_number = models.CharField(max_length=10, blank=True, default="")
     approved_by_id = models.UUIDField(null=True, blank=True, default=None)

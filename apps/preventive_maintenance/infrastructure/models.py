@@ -9,16 +9,16 @@ from __future__ import annotations
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class PMPlanModel(BaseModel):
+class PMPlanModel(BusinessRecordModel):
     """Persistence model for a Preventive Maintenance Plan aggregate root.
 
     MaintenanceInterval and TriggerCondition value objects are stored as
     flat columns — they are small and do not have independent lifecycle.
     'initiator_id' holds the domain created_by_id (avoids clash with
-    BaseModel.created_by FK auto-column).
+    UserAuditMixin.created_by FK auto-column).
     """
 
     vehicle_id = models.UUIDField(db_index=True)
@@ -51,7 +51,7 @@ class PMPlanModel(BaseModel):
         return f"PMPlan {self.name} [{self.status}]"
 
 
-class PMWorkOrderModel(BaseModel):
+class PMWorkOrderModel(BusinessRecordModel):
     """Persistence model for a PM Work Order aggregate root.
 
     References PMPlanModel via plan_id (UUID) to respect aggregate boundaries.

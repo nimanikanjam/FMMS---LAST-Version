@@ -25,7 +25,7 @@ apps/<domain>/domain/    entity، value object، exception و repository interfa
 apps/<domain>/application/ service، DTO و use case
 apps/<domain>/infrastructure/ ORM model، repository و migration
 interfaces/api/v1/       REST API v1 و composition فعلی dependencyها
-infrastructure/database/ BaseModel و commandهای عملیاتی
+infrastructure/database/ mixinهای ORM و commandهای عملیاتی
 infrastructure/sap/      client، adapter و transaction manager
 infrastructure/messaging/ Celery app و taskها
 tests/                   unit، integration و factory
@@ -59,9 +59,9 @@ tests/                   unit، integration و factory
 - ساخت Database و Role خارج از Django و توسط DBA/زیرساخت انجام می‌شود.
 - Django فقط schema را با migration مدیریت می‌کند؛ WSGI، ASGI و Celery startup بدون side effect دیتابیسی‌اند.
 
-### BaseModel
+### Model mixinها
 
-`BaseModel` شناسه، audit و soft-delete را فراهم می‌کند. وضعیت فعلی یک نقص شناخته‌شده دارد: همه repositoryها `is_deleted=False` را یکسان enforce نمی‌کنند. هدف معماری استفاده از managerهای `objects` و `all_objects` یا policy صریح برای master data است.
+چهار abstract mixin مستقل، UUID، timestamp، user audit و soft-delete را فراهم می‌کنند. مدل‌های فعلی برای حفظ schema از ترکیب `BusinessRecordModel` استفاده می‌کنند؛ مدل جدید باید فقط mixinهای واقعاً لازم را انتخاب کند. وضعیت فعلی یک نقص شناخته‌شده دارد: همه repositoryها `is_deleted=False` را یکسان enforce نمی‌کنند. هدف معماری استفاده از managerهای `objects` و `all_objects` یا policy صریح برای master data است.
 
 ### رابطه‌های بین دامنه‌ها
 

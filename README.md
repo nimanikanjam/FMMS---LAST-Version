@@ -107,7 +107,7 @@ FMMS/
 │   ├── integration/
 │   └── reporting/           # Phase 2
 ├── infrastructure/          # Shared infrastructure
-│   ├── database/            # BaseModel, management commands
+│   ├── database/            # ORM mixins and operational management commands
 │   ├── sap/                 # SAP clients + adapters + transaction manager
 │   └── messaging/           # Celery app + tasks
 ├── interfaces/              # REST API (DRF views, serializers, URLs)

@@ -2,10 +2,10 @@
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class VehicleHandoverModel(BaseModel):
+class VehicleHandoverModel(BusinessRecordModel):
     """Persistence model for vehicle handover."""
 
     repair_order_id = models.UUIDField(db_index=True, unique=True)

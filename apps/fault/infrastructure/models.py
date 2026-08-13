@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class FaultModel(BaseModel):
+class FaultModel(BusinessRecordModel):
     """Persistence model for a vehicle fault aggregate root.
 
     Cross-domain references (vehicle, inspection) are UUIDFields — not FKs —
@@ -49,7 +49,7 @@ class FaultModel(BaseModel):
         return f"Fault {self.id} [{self.severity}/{self.status}]"
 
 
-class FaultItemModel(BaseModel):
+class FaultItemModel(BusinessRecordModel):
     """Persistence model for a failed component within a fault incident."""
 
     fault_id = models.UUIDField(db_index=True)
@@ -74,7 +74,7 @@ class FaultItemModel(BaseModel):
         return f"FaultItem {self.id} [{self.component}]"
 
 
-class FaultCatalogModel(BaseModel):
+class FaultCatalogModel(BusinessRecordModel):
     """Local cache of SAP defect catalog rows used for manual fault reporting."""
 
     code_group = models.CharField(max_length=40, db_index=True)

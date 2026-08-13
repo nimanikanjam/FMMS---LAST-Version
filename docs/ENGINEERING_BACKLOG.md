@@ -188,7 +188,7 @@
 | VEH-001 | P2 | Open | summary service ORM دامنه‌های دیگر را می‌خواند | query port/read model مستقل |
 | VEH-002 | P3 | Open | history service request ID را حذف می‌کند | correlation log قابل جست‌وجو |
 | DRIVER-001 | P1 | Open | pagination/sort هنوز پس از load کامل گزارش شده | DB-level page با تست حجم/query |
-| DRIVER-002 | P2 | Decision | BaseModel برای SAP master data | policy مشترک decommission/soft-delete |
+| DRIVER-002 | P2 | Decision | soft-delete mixin برای SAP master data | policy مشترک decommission/soft-delete |
 
 موارد انجام‌شده تاریخی Vehicle شامل validation کیلومتر همان روز، sync transaction/bulk، محدودسازی exception، انتقال filter/sort، transaction تغییر status، query serializer، mapper مشترک، بهبود summary و validation commissioning date بوده‌اند. قبل از اتکا در Production باید regression suite جاری اجرا شود.
 

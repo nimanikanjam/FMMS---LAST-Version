@@ -215,9 +215,21 @@ class TestFMMSUserModel:
         assert "email" in FMMSUser.REQUIRED_FIELDS
         assert "full_name" in FMMSUser.REQUIRED_FIELDS
 
-    def test_base_model_importable(self) -> None:
-        """BaseModel must be importable from infrastructure."""
-        from infrastructure.database.base_model import BaseModel
+    def test_database_model_mixins_are_abstract(self) -> None:
+        """Shared persistence mixins must not create standalone tables."""
+        from infrastructure.database.model_mixins import (
+            BusinessRecordModel,
+            SoftDeleteMixin,
+            TimestampMixin,
+            UserAuditMixin,
+            UUIDPrimaryKeyMixin,
+        )
 
-        assert BaseModel is not None
-        assert BaseModel._meta.abstract is True
+        mixins = (
+            UUIDPrimaryKeyMixin,
+            TimestampMixin,
+            UserAuditMixin,
+            SoftDeleteMixin,
+            BusinessRecordModel,
+        )
+        assert all(model._meta.abstract for model in mixins)

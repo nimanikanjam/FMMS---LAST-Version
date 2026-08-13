@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class RepairOrderModel(BaseModel):
+class RepairOrderModel(BusinessRecordModel):
     """Persistence model for a repair order aggregate root.
 
     TechnicianAssignment is denormalized into two nullable columns rather
@@ -24,7 +24,7 @@ class RepairOrderModel(BaseModel):
     status = models.CharField(max_length=40, db_index=True)
     # 'initiator_id' stores the domain-level "who created the order".
     # We cannot use 'created_by_id' as it is the auto-generated attname
-    # of BaseModel.created_by (a ForeignKey).
+    # of UserAuditMixin.created_by (a ForeignKey).
     initiator_id = models.UUIDField()
     sap_order_number = models.CharField(max_length=30, blank=True, default="")
     workshop_type = models.CharField(max_length=20, blank=True, default="")
@@ -117,7 +117,7 @@ class RepairPartModel(models.Model):
         ]
 
 
-class RepairOrderEventModel(BaseModel):
+class RepairOrderEventModel(BusinessRecordModel):
     """Append-only timeline events for a repair order aggregate."""
 
     repair_order = models.ForeignKey(
@@ -138,7 +138,7 @@ class RepairOrderEventModel(BaseModel):
         ordering = ["created_at"]
 
 
-class ExternalRepairInvoiceModel(BaseModel):
+class ExternalRepairInvoiceModel(BusinessRecordModel):
     """Persistence model for external workshop invoices."""
 
     repair_order = models.ForeignKey(
@@ -159,7 +159,7 @@ class ExternalRepairInvoiceModel(BaseModel):
         db_table = "external_repair_invoice"
 
 
-class InternalRepairCostModel(BaseModel):
+class InternalRepairCostModel(BusinessRecordModel):
     """Financial registration for INTERNAL central-workshop repairs."""
 
     repair_order_id = models.UUIDField(db_index=True)
@@ -183,7 +183,7 @@ class InternalRepairCostModel(BaseModel):
         ]
 
 
-class ExternalWorkshopReferralRequestModel(BaseModel):
+class ExternalWorkshopReferralRequestModel(BusinessRecordModel):
     """Permission request for referring a repair order to an external workshop."""
 
     repair_order_id = models.UUIDField(db_index=True)
@@ -217,7 +217,7 @@ class ExternalWorkshopReferralRequestModel(BaseModel):
         ]
 
 
-class ExternalWorkshopAssignmentModel(BaseModel):
+class ExternalWorkshopAssignmentModel(BusinessRecordModel):
     """External workshop assignment created by Transportation."""
 
     repair_order_id = models.UUIDField(db_index=True)
@@ -251,7 +251,7 @@ class ExternalWorkshopAssignmentModel(BaseModel):
         ]
 
 
-class ExternalWorkshopDeliveryModel(BaseModel):
+class ExternalWorkshopDeliveryModel(BusinessRecordModel):
     """Driver confirmation of delivery to an external workshop."""
 
     assignment = models.OneToOneField(
@@ -274,7 +274,7 @@ class ExternalWorkshopDeliveryModel(BaseModel):
         db_table = "external_workshop_delivery"
 
 
-class ExternalWorkshopPickupModel(BaseModel):
+class ExternalWorkshopPickupModel(BusinessRecordModel):
     """Driver confirmation of pickup from an external workshop."""
 
     assignment = models.OneToOneField(
@@ -294,7 +294,7 @@ class ExternalWorkshopPickupModel(BaseModel):
         db_table = "external_workshop_pickup"
 
 
-class ExternalRepairReviewModel(BaseModel):
+class ExternalRepairReviewModel(BusinessRecordModel):
     """Transportation administrative review after external repair pickup."""
 
     assignment = models.OneToOneField(
@@ -311,7 +311,9 @@ class ExternalRepairReviewModel(BaseModel):
     )
     additional_notes = models.TextField(blank=True, default="")
     sap_purchase_order_number = models.CharField(max_length=64, blank=True, default="")
-    sap_invoice_document_number = models.CharField(max_length=64, blank=True, default="")
+    sap_invoice_document_number = models.CharField(
+        max_length=64, blank=True, default=""
+    )
     status = models.CharField(max_length=20, db_index=True)
     reviewed_by_id = models.UUIDField()
 

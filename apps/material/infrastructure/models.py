@@ -6,15 +6,15 @@ from decimal import Decimal
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class MaterialRequestModel(BaseModel):
+class MaterialRequestModel(BusinessRecordModel):
     """Persistence model for material requests."""
 
     repair_order_id = models.UUIDField(db_index=True)
     status = models.CharField(max_length=30, db_index=True)
-    # Domain "requested_by" — cannot use created_by_id (BaseModel FK attname).
+    # Domain "requested_by" — cannot use created_by_id (UserAuditMixin FK attname).
     requested_by_id = models.UUIDField()
 
     class Meta:
@@ -67,7 +67,7 @@ class InventoryTransactionModel(models.Model):
         db_table = "inventory_transaction"
 
 
-class CentralStockModel(BaseModel):
+class CentralStockModel(BusinessRecordModel):
     """Local cache of SAP central spare-parts warehouse stock (KH08)."""
 
     material = models.CharField(max_length=40, db_index=True)
@@ -77,7 +77,9 @@ class CentralStockModel(BaseModel):
     material_code = models.CharField(max_length=40, db_index=True)
     material_name = models.CharField(max_length=255, blank=True, default="")
     inventory_stock_type_text = models.CharField(max_length=100)
-    quantity = models.DecimalField(max_digits=18, decimal_places=3, default=Decimal("0"))
+    quantity = models.DecimalField(
+        max_digits=18, decimal_places=3, default=Decimal("0")
+    )
     base_unit = models.CharField(max_length=10)
     stock_value = models.DecimalField(
         max_digits=18, decimal_places=2, default=Decimal("0")

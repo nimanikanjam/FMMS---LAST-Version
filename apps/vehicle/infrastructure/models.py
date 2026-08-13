@@ -9,17 +9,17 @@ from __future__ import annotations
 from django.db import models
 
 from apps.vehicle.domain.entities import VehicleStatus
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class VehicleModel(BaseModel):
+class VehicleModel(BusinessRecordModel):
     """Persistence model for a SAP-sourced fleet vehicle.
 
     Stores all vehicle attributes as flat fields. Cross-domain references
     (e.g. repair orders) are resolved at the repository or service layer —
     never through Django ForeignKey to other app models.
 
-    Vehicles are SAP-owned master data. ``BaseModel`` audit fields are retained
+    Vehicles are SAP-owned master data. Composite audit fields are retained
     for consistency, but FMMS workflow visibility is controlled by ``status``;
     SAP decommissioning must not soft-delete rows.
 
@@ -71,7 +71,7 @@ class VehicleModel(BaseModel):
         return f"{self.vehicle_number} ({self.license_plate})"
 
 
-class VehicleDriverAssignmentHistoryModel(BaseModel):
+class VehicleDriverAssignmentHistoryModel(BusinessRecordModel):
     """SAP driver assignment snapshot captured during every vehicle sync."""
 
     class DriverRole(models.TextChoices):
@@ -120,7 +120,7 @@ class VehicleDriverAssignmentHistoryModel(BaseModel):
         )
 
 
-class VehicleComponentHistoryModel(BaseModel):
+class VehicleComponentHistoryModel(BusinessRecordModel):
     """Installed/replaced component history for maintenance decisions."""
 
     vehicle_id = models.UUIDField(db_index=True)
@@ -153,7 +153,7 @@ class VehicleComponentHistoryModel(BaseModel):
         return f"{self.vehicle_id} {self.component_type}: {self.material_number}"
 
 
-class VehicleOdometerReadingModel(BaseModel):
+class VehicleOdometerReadingModel(BusinessRecordModel):
     """Daily odometer reading recorded inside FMMS by operational users."""
 
     vehicle_id = models.UUIDField(db_index=True)

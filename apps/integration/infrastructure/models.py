@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from django.db import models
 
-from infrastructure.database.base_model import BaseModel
+from infrastructure.database.model_mixins import BusinessRecordModel
 
 
-class SAPSyncRunModel(BaseModel):
+class SAPSyncRunModel(BusinessRecordModel):
     """Persistence model for one SAP read synchronisation run."""
 
     class TriggerSource(models.TextChoices):
@@ -62,7 +62,7 @@ class SAPSyncRunModel(BaseModel):
         return f"SAPSyncRun {self.id} [{self.status}]"
 
 
-class SAPSyncRunItemModel(BaseModel):
+class SAPSyncRunItemModel(BusinessRecordModel):
     """Persistence model for one item inside a SAP read sync run."""
 
     sync_run = models.ForeignKey(
@@ -101,7 +101,7 @@ class SAPSyncRunItemModel(BaseModel):
         return f"SAPSyncRunItem {self.name} [{self.status}]"
 
 
-class SAPTransactionModel(BaseModel):
+class SAPTransactionModel(BusinessRecordModel):
     """Persistence model for a SAP integration transaction aggregate root.
 
     The ``idempotency_key`` has a unique constraint — the repository must
