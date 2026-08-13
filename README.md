@@ -113,13 +113,13 @@ FMMS/
 ├── interfaces/              # REST API (DRF views, serializers, URLs)
 │   └── api/
 │       └── v1/
-├── demo-frontend_v2/        # Local demo UI (workflow v2)
+├── frontend/                # Frontend application
 ├── tests/                   # All tests
 │   ├── unit/
 │   ├── integration/
 │   └── factories/
 ├── docs/                    # Architecture and planning documents
-└── prototypes/              # Exploratory code (not production)
+└── docs/prototypes/         # Exploratory code (not production)
 ```
 
 Each domain app has its own internal Clean Architecture:
@@ -139,6 +139,7 @@ apps/<domain>/
 
 - Docker and docker-compose
 - Python 3.12 (for local development without Docker)
+- An externally provisioned PostgreSQL database
 - `make`
 
 ### 1. Clone and configure
@@ -150,19 +151,30 @@ cp .env.example .env
 # Edit .env with your local values
 ```
 
-### 2. Start with Docker
+Docker Compose does not create or manage PostgreSQL. Set `POSTGRES_*` in `.env`
+to an existing database before continuing.
+
+### 2. Apply migrations
+
+```bash
+# Local Python environment
+make migrate
+
+# Or through the application image
+docker compose run --rm app python manage.py migrate
+```
+
+Migrations are an explicit deployment step and are not run by web or Celery
+process startup.
+
+### 3. Start with Docker
 
 ```bash
 make run
 ```
 
-This starts PostgreSQL, Redis, and the Django development server.
-
-### 3. Apply migrations
-
-```bash
-make migrate
-```
+This starts Redis and the Django development server. PostgreSQL remains an
+external dependency in both development and production.
 
 ### 4. Run tests
 
@@ -203,7 +215,6 @@ Once running, the interactive API documentation is available at:
 | `/api/schema/swagger-ui/`        | Swagger UI         |
 | `/api/schema/redoc/`             | Redoc              |
 | `/api/schema/`                   | Raw OpenAPI JSON   |
-| `/api/health/`                   | Health check       |
 
 ---
 
@@ -220,21 +231,20 @@ POSTGRES_DB=fmms
 POSTGRES_USER=fmms
 POSTGRES_PASSWORD=fmms
 POSTGRES_HOST=localhost
+POSTGRES_DOCKER_HOST=host.docker.internal
 POSTGRES_PORT=5432
 REDIS_URL=redis://localhost:6379/0
 SAP_USE_MOCK=True
 ```
 
-Database bootstrap (idempotent):
+The database itself must already exist. Django manages only its schema:
 
 ```bash
-python manage.py ensure_database
 python manage.py migrate
 ```
 
-`ensure_database` creates the configured PostgreSQL database when missing and
-is a no-op when it already exists. Docker Compose and WSGI/ASGI startup run
-this automatically before migrations / serving traffic.
+Run migrations once as a separate development/deployment step before starting
+web and Celery processes.
 
 ### Development data reset (DEBUG only)
 
@@ -270,7 +280,7 @@ The command refuses to run when `DEBUG=False` (staging/production/tests).
 | `fix/*`         | Bug fix branches                             |
 | `hotfix/*`      | Emergency production fixes                   |
 
-See `docs/BRANCH_STRATEGY.md` for the full branching model.
+See `docs/DEVELOPMENT_GUIDE.md` for the current branching and development rules.
 
 ### Commit Format
 
@@ -294,35 +304,22 @@ Examples:
 
 ## Development Roadmap
 
-| Milestone | Description                                   | Status    |
-|-----------|-----------------------------------------------|-----------|
-| M0        | Repository initialization                     | In Progress |
-| M1        | Project foundation (Django, config, logging)  | Pending   |
-| M2        | Domain layer (entities, value objects)        | Pending   |
-| M3        | Infrastructure — ORM models & repositories   | Pending   |
-| M4        | SAP integration layer                         | Pending   |
-| M5        | Application services — core domains           | Pending   |
-| M6        | Application services — maintenance domains    | Pending   |
-| M7        | REST API v1                                   | Pending   |
-| M8        | Async background tasks (Celery)               | Pending   |
-| M9        | Testing completeness & coverage               | Pending   |
-| M10       | Hardening & documentation                     | Pending   |
-
-See `docs/IMPLEMENTATION_TRACKER.md` for detailed task lists and progress.
+The initial milestone history is archived. Current scope and implemented domains are
+documented in `docs/PROJECT_OVERVIEW.md`; active defects and production-readiness work
+are tracked only in `docs/ENGINEERING_BACKLOG.md`.
 
 ---
 
 ## Documentation
 
-| Document                              | Description                              |
-|---------------------------------------|------------------------------------------|
-| `docs/FMMS_Architecture.md`          | Architecture principles and layer design |
-| `docs/Database_Design.md`            | Database schema and design rules         |
-| `docs/SAP_Integration.md`            | SAP integration architecture             |
-| `docs/API_Contract.md`               | API design principles and error format   |
-| `docs/IMPLEMENTATION_TRACKER.md`     | Milestone tracker and decision log       |
-| `docs/BRANCH_STRATEGY.md`            | Git branching model                      |
-| `docs/index.md`                      | Documentation index                      |
+| Document | Description |
+|---|---|
+| `docs/index.md` | Documentation entry point and source-of-truth policy |
+| `docs/PROJECT_OVERVIEW.md` | Business scope, roles, domains, and workflows |
+| `docs/TECHNICAL_ARCHITECTURE.md` | Django architecture, data, API, security, and deployment |
+| `docs/SAP_INTEGRATION_GUIDE.md` | SAP concepts and current OData/BAPI implementation |
+| `docs/ENGINEERING_BACKLOG.md` | Canonical defects, decisions, priorities, and acceptance criteria |
+| `docs/DEVELOPMENT_GUIDE.md` | Setup, Git, testing, CI, and documentation rules |
 
 ---
 
