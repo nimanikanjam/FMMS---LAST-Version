@@ -125,8 +125,8 @@
 | PERF-002 | Open | external workshop list الگوی تقریبی `1 + 3N` دارد | read query با select_related/projection |
 | DB-002 | Decision | cross-domain UUID در برابر FK | تصمیم جدا برای رابطه‌های critical و reconciliation |
 | DB-003 | Open | soft-delete در همه queryها enforce نیست | manager پیش‌فرض + `all_objects` + visibility tests |
-| DEP-003 | Open | Celery fallback به development settings | fail-fast یا production-safe settings |
-| TEST-001 | Open | تست‌ها از `.env` و `SAP_WRITE` اثر می‌گیرند | test settings hermetic؛ اجرای عادی ۷۸۸ تست سبز |
+| DEP-003 | Done | Celery fallback به development settings داشت | نبود settings module اکنون fail-fast است |
+| TEST-001 | Done | تست‌ها از `.env` و `SAP_WRITE` اثر می‌گرفتند | test settings hermetic؛ اجرای عادی suite سبز |
 | API-001 | Open | UUID نامعتبر ممکن است 500 شود | URL converter/helper و پاسخ 400 استاندارد |
 | CI-001 | Open | CI و quality gates فعال وجود ندارد | lint/type/migration/test/deploy/schema/compose gates |
 
@@ -152,6 +152,21 @@
 | OPS-001 | Open | upload/storage strategy تولیدی مشخص نیست | private object storage، retention و backup |
 | OPS-002 | Open | runbook/monitoring کامل نیست | alert، dashboard و ownership برای DB/Redis/Celery/SAP |
 | ADMIN-001 | Open | Admin عملیاتی فقط User را پوشش می‌دهد | read-only support views با permission/redaction |
+
+### CONFIG-001 — Hardening تنظیمات Production
+
+- وضعیت: Done
+- محل: `config/settings/production.py`، `config/health.py`، `core/logging/redaction.py`
+- evidence:
+  - envهای اجباری، host/origin wildcard و Redis URL هنگام startup اعتبارسنجی می‌شوند.
+  - `check --deploy` با env کنترل‌شده بدون هشدار امنیتی Django عبور می‌کند.
+  - DB connection timeout، statement timeout، persistent health check و pool اختیاری psycopg 3 تعریف شده‌اند.
+  - Redis در Production fail-closed و در Development fail-open است.
+  - log formatter کلیدها و الگوهای credential شناخته‌شده را recursively redacted می‌کند.
+  - CORS فقط `/api/` و originهای مجاز را پوشش می‌دهد؛ CSRF trusted origins مستقل است.
+  - static manifest و media mount صریح Production تعریف شده‌اند.
+  - setting منسوخ `SECURE_BROWSER_XSS_FILTER` حذف شده است.
+  - liveness و readiness مستقل و Docker healthcheck به liveness متصل است.
 
 ## ۶. Backlog اپ Fault
 

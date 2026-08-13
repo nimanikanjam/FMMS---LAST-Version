@@ -118,9 +118,29 @@ docker compose config --quiet
 
 Migration یک مرحله مستقل deployment است و نباید هنگام شروع WSGI، ASGI یا Celery اجرا شود.
 
+## ۹. Release checks و تنظیمات Production
+
+ترتیب release job مستقل از startup پردازش‌هاست:
+
+```bash
+python manage.py check --deploy --settings=config.settings.production
+python manage.py migrate --noinput --settings=config.settings.production
+python manage.py collectstatic --noinput --settings=config.settings.production
+```
+
+- Production فایل `.env` محلی را نمی‌خواند و envهای اجباری هنگام import settings اعتبارسنجی می‌شوند.
+- `POSTGRES_CONNECT_TIMEOUT` و `POSTGRES_STATEMENT_TIMEOUT_MS` مانع انتظار نامحدود connection/query می‌شوند.
+- اتصال پایدار با `POSTGRES_CONN_MAX_AGE` و health check داخلی Django فعال است.
+- pool فقط با `POSTGRES_POOL_ENABLED=True` و پس از محاسبه budget اتصال فعال شود؛ dependency آن `psycopg[pool]` است.
+- Redis cache در Development fail-open ولی در Production fail-closed است؛ خطای cache در readiness دیده می‌شود.
+- static با `ManifestStaticFilesStorage` تولید می‌شود.
+- `MEDIA_ROOT` باید mount پایدار، private و backup‌شده باشد؛ Django در Production فایل media را serve نمی‌کند.
+- Frontend با JWT header از CORS origins محدود استفاده می‌کند؛ CORS و `CSRF_TRUSTED_ORIGINS` دو تنظیم مستقل‌اند.
+- `/api/health/live/` فقط process و `/api/health/ready/` اتصال DB/Redis را بررسی می‌کند.
+
 تصمیم جاری: `FMMSUser.personnel_number` برای مقدار غیرخالی Unique است؛ migration حذف constraint نباید بدون ADR جدید پذیرفته شود.
 
-## ۹. تست SAP
+## ۱۰. تست SAP
 
 - تست و Development به‌صورت پیش‌فرض از Mock استفاده می‌کنند.
 - suite باید مقدار `SAP_WRITE` را صریح تعیین کند.
@@ -128,7 +148,7 @@ Migration یک مرحله مستقل deployment است و نباید هنگام 
 - هیچ تستی نباید document واقعی را بدون cleanup/approval در SAP PRD بسازد.
 - سناریوهای timeout، duplicate، retry exhaustion و SAP-success/DB-failure باید پوشش داده شوند.
 
-## ۱۰. قواعد مستندسازی
+## ۱۱. قواعد مستندسازی
 
 اسناد canonical فقط این پنج فایل‌اند:
 
