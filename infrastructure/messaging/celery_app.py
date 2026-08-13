@@ -9,8 +9,12 @@ from __future__ import annotations
 import os
 
 from celery import Celery
+from django.core.exceptions import ImproperlyConfigured
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+if not os.environ.get("DJANGO_SETTINGS_MODULE"):
+    raise ImproperlyConfigured(
+        "DJANGO_SETTINGS_MODULE is required before starting a Celery process."
+    )
 
 app = Celery("fmms")
 app.config_from_object("django.conf:settings", namespace="CELERY")

@@ -15,6 +15,8 @@ os.environ.setdefault("POSTGRES_DB", "fmms_test")
 os.environ.setdefault("POSTGRES_USER", "fmms_test")
 os.environ.setdefault("POSTGRES_PASSWORD", "test-only")
 os.environ.setdefault("POSTGRES_HOST", "localhost")
+os.environ.setdefault("SECRET_KEY", "test-only-secret-key-not-for-production")
+os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost")
 
 from .base import *  # noqa: F401, F403
 from .base import BASE_DIR  # noqa: F401

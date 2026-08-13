@@ -5,6 +5,7 @@ Shared configuration for all environments.
 Never import environment-specific settings from this file.
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -24,8 +25,10 @@ env = environ.Env(
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Read .env file if present (development only — production uses real env vars)
-environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
+# Local files are convenience only; deployed environments receive real env vars.
+_SETTINGS_MODULE = os.environ.get("DJANGO_SETTINGS_MODULE", "")
+if _SETTINGS_MODULE.endswith((".development", ".demo", ".test")):
+    environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Core
@@ -141,7 +144,15 @@ DATABASES = {
         "PASSWORD": env("POSTGRES_PASSWORD"),
         "HOST": env("POSTGRES_HOST"),
         "PORT": env.int("POSTGRES_PORT", default=5432),
+        "CONN_MAX_AGE": env.int("POSTGRES_CONN_MAX_AGE", default=60),
+        "CONN_HEALTH_CHECKS": True,
         "ATOMIC_REQUESTS": True,
+        "OPTIONS": {
+            "connect_timeout": env.int("POSTGRES_CONNECT_TIMEOUT", default=5),
+            "options": (
+                f"-c statement_timeout={env.int('POSTGRES_STATEMENT_TIMEOUT_MS', default=30000)}"
+            ),
+        },
     }
 }
 
