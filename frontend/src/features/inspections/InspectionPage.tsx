@@ -4,6 +4,7 @@ import {
   Box,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   LinearProgress,
   Link,
@@ -54,6 +55,13 @@ const SEVERITY_LABELS: Record<FailureSeverity, string> = {
   MEDIUM: 'متوسط',
   HIGH: 'زیاد',
   CRITICAL: 'بحرانی',
+};
+
+const SEVERITY_CHIP_STYLE: Record<FailureSeverity, { bg: string; color: string; border: string }> = {
+  LOW: { bg: 'rgba(100, 112, 103, 0.12)', color: '#4b544e', border: 'rgba(100, 112, 103, 0.35)' },
+  MEDIUM: { bg: 'rgba(210, 138, 32, 0.14)', color: '#8a5a13', border: 'rgba(210, 138, 32, 0.42)' },
+  HIGH: { bg: 'rgba(201, 65, 50, 0.12)', color: '#a3352a', border: 'rgba(201, 65, 50, 0.36)' },
+  CRITICAL: { bg: '#c94132', color: '#ffffff', border: '#c94132' },
 };
 
 const VEHICLE_PAGE_SIZE = 20;
@@ -1683,9 +1691,24 @@ export function InspectionPage() {
                               helperText={currentItem.errors.defectOption}
                             />
                             {currentItem.defectOptionId && currentItem.severity && (
-                              <Typography variant="caption" color="text.secondary">
-                                شدت خرابی: {SEVERITY_LABELS[currentItem.severity]}
-                              </Typography>
+                              <Stack direction="row" alignItems="center" gap={0.75}>
+                                <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                                  شدت خرابی:
+                                </Typography>
+                                <Chip
+                                  size="small"
+                                  label={SEVERITY_LABELS[currentItem.severity]}
+                                  sx={{
+                                    height: 26,
+                                    fontWeight: 800,
+                                    fontSize: '0.8rem',
+                                    bgcolor: SEVERITY_CHIP_STYLE[currentItem.severity].bg,
+                                    color: SEVERITY_CHIP_STYLE[currentItem.severity].color,
+                                    border: '1px solid',
+                                    borderColor: SEVERITY_CHIP_STYLE[currentItem.severity].border,
+                                  }}
+                                />
+                              </Stack>
                             )}
                             <RtlTextField
                               label="توضیح تکمیلی (اختیاری)"
