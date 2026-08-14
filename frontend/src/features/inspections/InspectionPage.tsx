@@ -46,7 +46,6 @@ type ChecklistDraft = {
   notes: string;
   severity: FailureSeverity | '';
   defectOptionId: string;
-  defectOptionLabel: string;
   errors: { result?: string; notes?: string; defectOption?: string };
 };
 
@@ -501,7 +500,6 @@ export function InspectionPage() {
             notes: '',
             severity: '',
             defectOptionId: '',
-            defectOptionLabel: '',
             errors: {},
           })),
         );
@@ -658,7 +656,6 @@ export function InspectionPage() {
       notes: next === 'FAIL' ? currentItem.notes : '',
       severity: next === 'FAIL' ? currentItem.severity : '',
       defectOptionId: next === 'FAIL' ? currentItem.defectOptionId : '',
-      defectOptionLabel: next === 'FAIL' ? currentItem.defectOptionLabel : '',
     });
     if (next === 'PASS' && !isLastItem) {
       // Advance after PASS so the driver sees one item at a time.
@@ -1676,12 +1673,7 @@ export function InspectionPage() {
                               onChange={(_, next) =>
                                 updateItem(wizardIndex, {
                                   defectOptionId: next?.id ?? '',
-                                  defectOptionLabel: next?.code_text ?? '',
                                   severity: next ? severityFromDefectClass(next.defect_class) : '',
-                                  notes:
-                                    next && !currentItem.notes.trim()
-                                      ? next.code_text
-                                      : currentItem.notes,
                                 })
                               }
                               getOptionLabel={(option) => option.code_text}
