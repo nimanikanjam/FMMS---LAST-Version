@@ -8,13 +8,11 @@ from apps.repair.application.dto.repair_dto import (
     CompleteRepairOrderDTO,
     CreateRepairOrderDTO,
     DeleteRepairActivityDTO,
-    DeleteRepairPartDTO,
     RepairActivityResponseDTO,
     RepairOrderResponseDTO,
     RepairPartResponseDTO,
     SyncRepairToSAPDTO,
     UpdateRepairActivityDTO,
-    UpdateRepairPartDTO,
 )
 
 __all__ = [
@@ -25,9 +23,7 @@ __all__ = [
     "AddRepairActivityDTO",
     "AddRepairPartDTO",
     "DeleteRepairActivityDTO",
-    "DeleteRepairPartDTO",
     "UpdateRepairActivityDTO",
-    "UpdateRepairPartDTO",
     "SyncRepairToSAPDTO",
     "RepairOrderResponseDTO",
     "RepairActivityResponseDTO",

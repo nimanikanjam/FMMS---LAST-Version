@@ -4,9 +4,7 @@ from apps.repair.application.services.add_repair_activity_service import (
     AddRepairActivityService,
     AddRepairPartService,
     DeleteRepairActivityService,
-    DeleteRepairPartService,
     UpdateRepairActivityService,
-    UpdateRepairPartService,
 )
 from apps.repair.application.services.approve_repair_order_service import (
     ApproveRepairOrderService,
@@ -56,9 +54,7 @@ __all__ = [
     "AddRepairActivityService",
     "AddRepairPartService",
     "DeleteRepairActivityService",
-    "DeleteRepairPartService",
     "UpdateRepairActivityService",
-    "UpdateRepairPartService",
     "SyncRepairToSAPService",
     "GetRepairOrderService",
     "ListRepairOrdersService",

@@ -191,27 +191,6 @@ class AddRepairPartDTO:
 
 
 @dataclass(frozen=True)
-class UpdateRepairPartDTO:
-    """Input DTO for editing a consumed repair part."""
-
-    repair_order_id: uuid.UUID
-    part_id: uuid.UUID
-    material_number: str
-    quantity: int
-    request_id: str
-    unit_of_measure: str = DEFAULT_REPAIR_PART_UOM
-
-
-@dataclass(frozen=True)
-class DeleteRepairPartDTO:
-    """Input DTO for deleting a consumed repair part."""
-
-    repair_order_id: uuid.UUID
-    part_id: uuid.UUID
-    request_id: str
-
-
-@dataclass(frozen=True)
 class RepairActivityResponseDTO:
     """Output DTO for a single repair activity."""
 

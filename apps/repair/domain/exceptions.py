@@ -68,14 +68,6 @@ class RepairActivityNotFoundError(RepairDomainError, DomainNotFoundError):
         self.activity_id = activity_id
 
 
-class RepairPartNotFoundError(RepairDomainError, DomainNotFoundError):
-    """Raised when a repair part cannot be located."""
-
-    def __init__(self, part_id: object) -> None:
-        super().__init__(f"Repair part not found: '{part_id}'.")
-        self.part_id = part_id
-
-
 class ExternalRepairInvoiceNotFoundError(RepairDomainError, DomainNotFoundError):
     """Raised when an external repair invoice cannot be located."""
 

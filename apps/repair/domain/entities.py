@@ -15,7 +15,6 @@ from apps.repair.domain.exceptions import (
     RepairActivityNotFoundError,
     RepairOrderInvalidStateError,
     RepairOrderInvalidStateTransitionError,
-    RepairPartNotFoundError,
 )
 from apps.repair.domain.value_objects import (
     LaborHours,
@@ -628,28 +627,6 @@ class RepairOrder:
         """
         self._assert_mutable("add_part")
         self.parts.append(part)
-
-    def update_part(
-        self,
-        part_id: uuid.UUID,
-        *,
-        part_quantity: PartQuantity,
-    ) -> None:
-        """Update an existing consumed part record on a mutable order."""
-        self._assert_mutable("update_part")
-        for part in self.parts:
-            if part.id == part_id:
-                part.part_quantity = part_quantity
-                return
-        raise RepairPartNotFoundError(part_id)
-
-    def delete_part(self, part_id: uuid.UUID) -> None:
-        """Remove an existing consumed part record from a mutable order."""
-        self._assert_mutable("delete_part")
-        next_parts = [part for part in self.parts if part.id != part_id]
-        if len(next_parts) == len(self.parts):
-            raise RepairPartNotFoundError(part_id)
-        self.parts = next_parts
 
     def link_sap_order(self, sap_order_number: str) -> None:
         """Record the SAP PM order number after successful SAP sync.

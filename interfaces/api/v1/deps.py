@@ -144,9 +144,7 @@ from apps.repair.application.services.add_repair_activity_service import (
     AddRepairActivityService,
     AddRepairPartService,
     DeleteRepairActivityService,
-    DeleteRepairPartService,
     UpdateRepairActivityService,
-    UpdateRepairPartService,
 )
 from apps.repair.application.services.approve_repair_order_service import (
     AcceptRepairOrderService,
@@ -1116,16 +1114,6 @@ def get_delete_repair_activity_service() -> DeleteRepairActivityService:
 def get_add_repair_part_service() -> AddRepairPartService:
     """Return AddRepairPartService."""
     return AddRepairPartService(get_repair_order_repository())
-
-
-def get_update_repair_part_service() -> UpdateRepairPartService:
-    """Return UpdateRepairPartService."""
-    return UpdateRepairPartService(get_repair_order_repository())
-
-
-def get_delete_repair_part_service() -> DeleteRepairPartService:
-    """Return DeleteRepairPartService."""
-    return DeleteRepairPartService(get_repair_order_repository())
 
 
 def get_sync_repair_to_sap_service() -> SyncRepairToSAPService:

@@ -587,23 +587,6 @@ export const api = {
     });
   },
 
-  updateRepairPart(
-    id: string,
-    partId: string,
-    payload: { material_number: string; quantity: number },
-  ) {
-    return request(`/repair-orders/${id}/parts/${partId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    });
-  },
-
-  deleteRepairPart(id: string, partId: string) {
-    return request(`/repair-orders/${id}/parts/${partId}/`, {
-      method: 'DELETE',
-    });
-  },
-
   addRepairActivity(
     id: string,
     payload: { description: string; labor_hours: string | number; notes?: string },

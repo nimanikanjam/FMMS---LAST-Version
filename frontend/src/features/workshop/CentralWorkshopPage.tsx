@@ -199,7 +199,6 @@ export function CentralWorkshopPage() {
   const [consumedPart, setConsumedPart] = useState<MaterialPickValue>(EMPTY_MATERIAL_PICK);
   const [consumedQty, setConsumedQty] = useState('1');
   const [consumedLines, setConsumedLines] = useState<PartLineDraft[]>([]);
-  const [editingPartId, setEditingPartId] = useState('');
   const [activityDescription, setActivityDescription] = useState('');
   const [activityHours, setActivityHours] = useState('');
   const [activityNotes, setActivityNotes] = useState('');
@@ -301,7 +300,6 @@ export function CentralWorkshopPage() {
     setActivityHours('');
     setActivityNotes('');
     setEditingActivityId('');
-    setEditingPartId('');
     setDetailLoading(true);
     try {
       const [order, fault, vehicle, history, timeline, materials] = await Promise.all([
@@ -422,74 +420,23 @@ export function CentralWorkshopPage() {
 
   const recordConsumedPart = async () => {
     if (!selected) return;
-    if (!editingPartId && consumedLines.length === 0) return;
+    if (consumedLines.length === 0) return;
     setActionLoading('consumed');
     setActionError('');
     try {
-      if (editingPartId) {
-        const quantity = Math.max(1, Number(consumedQty) || 1);
-        await api.updateRepairPart(selected.id, editingPartId, {
-          material_number: consumedPart.materialNumber.trim(),
-          quantity,
+      for (const line of consumedLines) {
+        await api.addRepairPart(selected.id, {
+          material_number: line.materialNumber,
+          quantity: line.quantity,
         });
-      } else {
-        for (const line of consumedLines) {
-          await api.addRepairPart(selected.id, {
-            material_number: line.materialNumber,
-            quantity: line.quantity,
-          });
-        }
       }
-      const message = editingPartId
-        ? 'قطعه مصرفی ویرایش شد.'
-        : 'قطعه مصرفی ثبت شد (جدا از درخواست قطعه).';
       setConsumedPart(EMPTY_MATERIAL_PICK);
       setConsumedQty('1');
       setConsumedLines([]);
-      setEditingPartId('');
       await openDetail(selected);
-      setSuccess(message);
+      setSuccess('قطعه مصرفی ثبت شد (جدا از درخواست قطعه).');
     } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : 'ثبت/ویرایش قطعه مصرفی انجام نشد',
-      );
-    } finally {
-      setActionLoading('');
-    }
-  };
-
-  const startEditPart = (part: NonNullable<RepairOrder['parts']>[number]) => {
-    setEditingPartId(part.id);
-    setConsumedPart({
-      materialNumber: part.material_number,
-      fromCatalog: true,
-      materialName: '',
-      availableQuantity: '',
-    });
-    setConsumedQty(String(part.quantity));
-    setConsumedLines([]);
-    setActionError('');
-  };
-
-  const cancelEditPart = () => {
-    setEditingPartId('');
-    setConsumedPart(EMPTY_MATERIAL_PICK);
-    setConsumedQty('1');
-    setConsumedLines([]);
-  };
-
-  const deleteConsumedPart = async (partId: string) => {
-    if (!selected) return;
-    if (!window.confirm('این قطعه مصرفی حذف شود؟')) return;
-    setActionLoading(`delete-part-${partId}`);
-    setActionError('');
-    try {
-      await api.deleteRepairPart(selected.id, partId);
-      if (editingPartId === partId) cancelEditPart();
-      await openDetail(selected);
-      setSuccess('قطعه مصرفی حذف شد.');
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'حذف قطعه مصرفی انجام نشد');
+      setActionError(err instanceof Error ? err.message : 'ثبت قطعه مصرفی انجام نشد');
     } finally {
       setActionLoading('');
     }
@@ -640,11 +587,7 @@ export function CentralWorkshopPage() {
   const canCompleteRepair = detail?.order.status === 'IN_PROGRESS';
   const canRecordConsumed = detail?.order.status === 'IN_PROGRESS';
   const canRecordActivity = detail?.order.status === 'IN_PROGRESS';
-  const canSubmitConsumed = editingPartId
-    ? Boolean(consumedPart.materialNumber.trim()) &&
-      Number.isFinite(Number(consumedQty)) &&
-      Number(consumedQty) > 0
-    : consumedLines.length > 0;
+  const canSubmitConsumed = consumedLines.length > 0;
   const canSubmitActivity =
     activityDescription.trim().length > 0 &&
     Number.isFinite(Number(activityHours)) &&
@@ -910,7 +853,7 @@ export function CentralWorkshopPage() {
                 <Card variant="outlined">
                   <CardContent>
                     <Typography fontWeight={700} mb={1.5}>
-                      {editingPartId ? 'ویرایش قطعه مصرفی' : 'ثبت قطعه مصرفی'}
+                      ثبت قطعه مصرفی
                     </Typography>
                     <Stack spacing={1.5}>
                       <Typography variant="body2" color="text.secondary">
@@ -939,27 +882,14 @@ export function CentralWorkshopPage() {
                         />
                         <Button
                           variant="outlined"
-                          disabled={
-                            editingPartId !== '' || !consumedPart.materialNumber.trim()
-                          }
+                          disabled={!consumedPart.materialNumber.trim()}
                           onClick={addConsumedLine}
                           sx={{ mt: { sm: 0.5 } }}
                         >
                           افزودن به لیست
                         </Button>
-                        {editingPartId ? (
-                          <Button
-                            variant="outlined"
-                            color="inherit"
-                            startIcon={<Cancel />}
-                            onClick={cancelEditPart}
-                            sx={{ mt: { sm: 0.5 }, whiteSpace: 'nowrap' }}
-                          >
-                            انصراف
-                          </Button>
-                        ) : null}
                       </Stack>
-                      {!editingPartId && consumedLines.length > 0 ? (
+                      {consumedLines.length > 0 ? (
                         <Stack direction="row" flexWrap="wrap" gap={1}>
                           {consumedLines.map((line) => (
                             <Chip
@@ -992,7 +922,7 @@ export function CentralWorkshopPage() {
                           disabled={!canSubmitConsumed}
                           onClick={() => void recordConsumedPart()}
                         >
-                          {editingPartId ? 'ثبت ویرایش' : 'ثبت قطعه مصرفی'}
+                          ثبت قطعه مصرفی
                         </Button>
                       </Stack>
                     </Stack>
@@ -1003,19 +933,16 @@ export function CentralWorkshopPage() {
               {detail.order.parts && detail.order.parts.length > 0 ? (
                 <Stack spacing={1}>
                   {detail.order.parts.map((part) => {
-                    const editing = editingPartId === part.id;
                     return (
                       <Box
                         key={part.id}
                         sx={{
                           border: '1px solid',
-                          borderColor: editing ? 'primary.main' : 'divider',
+                          borderColor: 'divider',
                           borderRadius: 1,
                           px: 1.5,
                           py: 1,
-                          bgcolor: editing
-                            ? 'rgba(25, 118, 210, 0.06)'
-                            : 'background.paper',
+                          bgcolor: 'background.paper',
                         }}
                       >
                         <Stack
@@ -1037,32 +964,6 @@ export function CentralWorkshopPage() {
                                 : ''}
                             </Typography>
                           </Box>
-                          {canRecordConsumed ? (
-                            <Stack
-                              direction={{ xs: 'column', sm: 'row' }}
-                              spacing={1}
-                              sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
-                            >
-                              <Button
-                                size="small"
-                                variant={editing ? 'contained' : 'outlined'}
-                                startIcon={<Edit />}
-                                onClick={() => startEditPart(part)}
-                              >
-                                ویرایش
-                              </Button>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="error"
-                                startIcon={<DeleteOutline />}
-                                loading={actionLoading === `delete-part-${part.id}`}
-                                onClick={() => void deleteConsumedPart(part.id)}
-                              >
-                                حذف
-                              </Button>
-                            </Stack>
-                          ) : null}
                         </Stack>
                       </Box>
                     );

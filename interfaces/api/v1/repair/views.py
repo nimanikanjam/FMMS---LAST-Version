@@ -32,14 +32,12 @@ from apps.repair.application.dto.repair_dto import (
     ConfirmExternalWorkshopPickupDTO,
     CreateRepairOrderDTO,
     DeleteRepairActivityDTO,
-    DeleteRepairPartDTO,
     RejectRepairOrderByTransportDTO,
     ReviewExternalRepairDTO,
     SyncRepairToSAPDTO,
     TransportHandoverApproveDTO,
     TransportHandoverRejectDTO,
     UpdateRepairActivityDTO,
-    UpdateRepairPartDTO,
     WorkshopTechnicalDecisionDTO,
 )
 from apps.repair.application.services.register_internal_repair_cost_service import (
@@ -545,44 +543,6 @@ class RepairOrderViewSet(
         result = deps.get_add_repair_part_service().execute(
             AddRepairPartDTO(
                 repair_order_id=uuid.UUID(str(pk)),
-                material_number=serializer.validated_data["material_number"],
-                quantity=serializer.validated_data["quantity"],
-                request_id=request_id_from(request),
-            )
-        )
-        return Response(RepairOrderResponseSerializer(result).data)
-
-    @extend_schema(
-        tags=[API_TAGS.repair],
-        request=RepairPartCreateSerializer,
-        responses=RepairOrderResponseSerializer,
-    )
-    @action(
-        detail=True,
-        methods=["patch", "delete"],
-        url_path=r"parts/(?P<part_id>[^/.]+)",
-        permission_classes=[IsWorkshopSupervisorOrAbove],
-    )
-    def update_part(
-        self, request: Request, pk: str | None = None, part_id: str | None = None
-    ) -> Response:
-        """Edit or delete a consumed spare part."""
-        if request.method == "DELETE":
-            result = deps.get_delete_repair_part_service().execute(
-                DeleteRepairPartDTO(
-                    repair_order_id=uuid.UUID(str(pk)),
-                    part_id=uuid.UUID(str(part_id)),
-                    request_id=request_id_from(request),
-                )
-            )
-            return Response(RepairOrderResponseSerializer(result).data)
-
-        serializer = RepairPartCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        result = deps.get_update_repair_part_service().execute(
-            UpdateRepairPartDTO(
-                repair_order_id=uuid.UUID(str(pk)),
-                part_id=uuid.UUID(str(part_id)),
                 material_number=serializer.validated_data["material_number"],
                 quantity=serializer.validated_data["quantity"],
                 request_id=request_id_from(request),
