@@ -846,136 +846,6 @@ export function CentralWorkshopPage() {
           ),
         },
         {
-          label: 'قطعات مصرفی',
-          content: (
-            <Stack spacing={2}>
-              {canRecordConsumed ? (
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography fontWeight={700} mb={1.5}>
-                      ثبت قطعه مصرفی
-                    </Typography>
-                    <Stack spacing={1.5}>
-                      <Typography variant="body2" color="text.secondary">
-                        برای هر قطعه مصرفی تعداد جداگانه ثبت کنید (متفاوت از درخواست قطعه).
-                      </Typography>
-                      <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={1}
-                        useFlexGap
-                        alignItems="flex-start"
-                      >
-                        <MaterialStockPicker
-                          label="قطعه مصرفی"
-                          value={consumedPart}
-                          onChange={setConsumedPart}
-                          showSelectedChip={false}
-                        />
-                        <RtlTextField
-                          label="تعداد"
-                          value={consumedQty}
-                          onChange={(event) => setConsumedQty(event.target.value)}
-                          size="small"
-                          type="number"
-                          inputProps={{ min: 1 }}
-                          sx={{ width: { xs: '100%', sm: 110 } }}
-                        />
-                        <Button
-                          variant="outlined"
-                          disabled={!consumedPart.materialNumber.trim()}
-                          onClick={addConsumedLine}
-                          sx={{ mt: { sm: 0.5 } }}
-                        >
-                          افزودن به لیست
-                        </Button>
-                      </Stack>
-                      {consumedLines.length > 0 ? (
-                        <Stack direction="row" flexWrap="wrap" gap={1}>
-                          {consumedLines.map((line) => (
-                            <Chip
-                              key={line.key}
-                              color={line.fromCatalog ? 'success' : 'warning'}
-                              variant="outlined"
-                              label={lineChipLabel(line)}
-                              onDelete={() =>
-                                setConsumedLines((prev) =>
-                                  prev.filter((item) => item.key !== line.key),
-                                )
-                              }
-                            />
-                          ))}
-                        </Stack>
-                      ) : null}
-                      <Stack
-                        direction="row"
-                        justifyContent="flex-end"
-                        sx={{
-                          pt: 1,
-                          borderTop: '1px solid',
-                          borderColor: 'divider',
-                        }}
-                      >
-                        <Button
-                          variant="contained"
-                          color="success"
-                          loading={actionLoading === 'consumed'}
-                          disabled={!canSubmitConsumed}
-                          onClick={() => void recordConsumedPart()}
-                        >
-                          ثبت قطعه مصرفی
-                        </Button>
-                      </Stack>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              {detail.order.parts && detail.order.parts.length > 0 ? (
-                <Stack spacing={1}>
-                  {detail.order.parts.map((part) => {
-                    return (
-                      <Box
-                        key={part.id}
-                        sx={{
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 1,
-                          px: 1.5,
-                          py: 1,
-                          bgcolor: 'background.paper',
-                        }}
-                      >
-                        <Stack
-                          direction={{ xs: 'column', sm: 'row' }}
-                          justifyContent="space-between"
-                          gap={1}
-                        >
-                          <Box>
-                            <Typography fontWeight={800}>
-                              {part.material_number}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              تعداد {toFaNumber(part.quantity)}
-                              {part.unit_of_measure && part.unit_of_measure !== '-'
-                                ? ` ${part.unit_of_measure}`
-                                : ''}
-                              {part.posted_at
-                                ? ` · ثبت انبار ${formatDateTime(part.posted_at)}`
-                                : ''}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              ) : canRecordConsumed ? null : (
-                <EmptyState title="قطعه مصرفی ثبت نشده است" />
-              )}
-            </Stack>
-          ),
-        },
-        {
           label: 'درخواست و دریافت قطعات',
           content: (
             <Stack spacing={2}>
@@ -1217,6 +1087,136 @@ export function CentralWorkshopPage() {
                 );
                   })}
                 </Stack>
+              )}
+            </Stack>
+          ),
+        },
+        {
+          label: 'قطعات مصرفی',
+          content: (
+            <Stack spacing={2}>
+              {canRecordConsumed ? (
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography fontWeight={700} mb={1.5}>
+                      ثبت قطعه مصرفی
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      <Typography variant="body2" color="text.secondary">
+                        برای هر قطعه مصرفی تعداد جداگانه ثبت کنید (متفاوت از درخواست قطعه).
+                      </Typography>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        useFlexGap
+                        alignItems="flex-start"
+                      >
+                        <MaterialStockPicker
+                          label="قطعه مصرفی"
+                          value={consumedPart}
+                          onChange={setConsumedPart}
+                          showSelectedChip={false}
+                        />
+                        <RtlTextField
+                          label="تعداد"
+                          value={consumedQty}
+                          onChange={(event) => setConsumedQty(event.target.value)}
+                          size="small"
+                          type="number"
+                          inputProps={{ min: 1 }}
+                          sx={{ width: { xs: '100%', sm: 110 } }}
+                        />
+                        <Button
+                          variant="outlined"
+                          disabled={!consumedPart.materialNumber.trim()}
+                          onClick={addConsumedLine}
+                          sx={{ mt: { sm: 0.5 } }}
+                        >
+                          افزودن به لیست
+                        </Button>
+                      </Stack>
+                      {consumedLines.length > 0 ? (
+                        <Stack direction="row" flexWrap="wrap" gap={1}>
+                          {consumedLines.map((line) => (
+                            <Chip
+                              key={line.key}
+                              color={line.fromCatalog ? 'success' : 'warning'}
+                              variant="outlined"
+                              label={lineChipLabel(line)}
+                              onDelete={() =>
+                                setConsumedLines((prev) =>
+                                  prev.filter((item) => item.key !== line.key),
+                                )
+                              }
+                            />
+                          ))}
+                        </Stack>
+                      ) : null}
+                      <Stack
+                        direction="row"
+                        justifyContent="flex-end"
+                        sx={{
+                          pt: 1,
+                          borderTop: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Button
+                          variant="contained"
+                          color="success"
+                          loading={actionLoading === 'consumed'}
+                          disabled={!canSubmitConsumed}
+                          onClick={() => void recordConsumedPart()}
+                        >
+                          ثبت قطعه مصرفی
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {detail.order.parts && detail.order.parts.length > 0 ? (
+                <Stack spacing={1}>
+                  {detail.order.parts.map((part) => {
+                    return (
+                      <Box
+                        key={part.id}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          px: 1.5,
+                          py: 1,
+                          bgcolor: 'background.paper',
+                        }}
+                      >
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          justifyContent="space-between"
+                          gap={1}
+                        >
+                          <Box>
+                            <Typography fontWeight={800}>
+                              {part.material_number}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              تعداد {toFaNumber(part.quantity)}
+                              {part.unit_of_measure && part.unit_of_measure !== '-'
+                                ? ` ${part.unit_of_measure}`
+                                : ''}
+                              {part.posted_at
+                                ? ` · ثبت انبار ${formatDateTime(part.posted_at)}`
+                                : ''}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              ) : canRecordConsumed ? null : (
+                <EmptyState title="قطعه مصرفی ثبت نشده است" />
               )}
             </Stack>
           ),
