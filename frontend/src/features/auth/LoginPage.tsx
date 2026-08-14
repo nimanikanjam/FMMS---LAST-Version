@@ -121,7 +121,7 @@ export function LoginPage() {
             position: 'relative',
             zIndex: 1,
             textAlign: 'right',
-            mr: 'auto',
+            mr: 0,
           }}
         >
           {/* Logo + brand */}
@@ -136,6 +136,7 @@ export function LoginPage() {
                 objectFit: 'contain',
                 filter: 'drop-shadow(0 8px 20px rgba(15,107,76,0.28))',
                 flexShrink: 0,
+                ml: 2,
               }}
             />
             <Box sx={{ minWidth: 0 }}>
@@ -158,14 +159,15 @@ export function LoginPage() {
           <Stack spacing={1.5} sx={{ width: '100%' }}>
             <Typography
               sx={{
-                fontSize: { md: '2rem', lg: '2.4rem' },
+                fontSize: { md: '1.5rem', lg: '2rem' },
                 fontWeight: 900,
                 lineHeight: 1.4,
                 color: 'primary.dark',
+                whiteSpace: { md: 'nowrap' },
               }}
             >
-              پلتفرم مدیریت هوشمند
-              <Box component="span" sx={{ display: 'block', color: 'secondary.dark' }}>
+              پلتفرم مدیریت هوشمند{' '}
+              <Box component="span" sx={{ color: 'secondary.dark' }}>
                 نگهداری ناوگان
               </Box>
             </Typography>
