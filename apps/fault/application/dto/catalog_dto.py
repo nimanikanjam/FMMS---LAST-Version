@@ -31,3 +31,4 @@ class FaultCatalogSyncResultDTO:
     created: int
     updated: int
     failed: int
+    deactivated: int = 0

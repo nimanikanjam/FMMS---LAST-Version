@@ -101,3 +101,13 @@ class DjangoFaultCatalogRepository(IFaultCatalogRepository):
             extra={"catalog_id": str(catalog.id), "is_new": created},
         )
         return catalog
+
+    def deactivate_missing(self, seen_keys: set[tuple[str, str]]) -> int:
+        """Deactivate active rows whose (code, code_group) is absent from seen_keys."""
+        qs = FaultCatalogModel.objects.filter(is_active=True, is_deleted=False)
+        if seen_keys:
+            keep = Q()
+            for code, code_group in seen_keys:
+                keep |= Q(code=code, code_group=code_group)
+            qs = qs.exclude(keep)
+        return qs.update(is_active=False, updated_at=datetime.now(tz=UTC))

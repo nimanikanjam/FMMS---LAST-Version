@@ -32,3 +32,12 @@ class IFaultCatalogRepository(ABC):
     @abstractmethod
     def save(self, catalog: FaultCatalog) -> FaultCatalog:
         """Persist a new or updated catalog row."""
+
+    @abstractmethod
+    def deactivate_missing(self, seen_keys: set[tuple[str, str]]) -> int:
+        """Deactivate active rows whose ``(code, code_group)`` wasn't in the latest SAP fetch.
+
+        Used after a full sync to stop showing catalog rows SAP no longer
+        returns (e.g. after switching the synced CDS view) without deleting
+        their history. Returns the number of rows deactivated.
+        """

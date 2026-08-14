@@ -97,7 +97,9 @@ class SyncFaultCatalogFromSAPService:
         created = 0
         updated = 0
         failed = 0
+        seen_keys: set[tuple[str, str]] = set()
         for sap_dto in rows:
+            seen_keys.add((sap_dto.code, sap_dto.code_group))
             try:
                 if self._sync_one(sap_dto):
                     created += 1
@@ -118,11 +120,17 @@ class SyncFaultCatalogFromSAPService:
                     },
                     exc_info=True,
                 )
+
+        # Rows left over from a previous sync (e.g. a different CDS view,
+        # or a code SAP dropped) must stop being offered, not linger forever.
+        deactivated = self._repo.deactivate_missing(seen_keys)
+
         return FaultCatalogSyncResultDTO(
             total_received=len(rows),
             created=created,
             updated=updated,
             failed=failed,
+            deactivated=deactivated,
         )
 
     def _sync_one(self, sap_dto: SAPDefectCodeDTO) -> bool:

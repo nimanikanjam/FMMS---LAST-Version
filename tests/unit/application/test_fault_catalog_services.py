@@ -64,6 +64,14 @@ class FakeFaultCatalogRepository(IFaultCatalogRepository):
         self._store[catalog.id] = catalog
         return catalog
 
+    def deactivate_missing(self, seen_keys: set[tuple[str, str]]) -> int:
+        deactivated = 0
+        for item in self._store.values():
+            if item.is_active and (item.code, item.code_group) not in seen_keys:
+                item.is_active = False
+                deactivated += 1
+        return deactivated
+
 
 class FakeSAPFaultCatalogPort(ISAPFaultCatalogPort):
     """Returns canned SAP defect catalog entries."""
@@ -141,6 +149,31 @@ class TestSyncFaultCatalogFromSAPService:
         assert saved is not None
         assert saved.code_text == "ترمز ضعیف"
         assert saved.defect_class == "S1"
+
+    def test_deactivates_rows_no_longer_returned_by_sap(self) -> None:
+        """Switching SAP source (or SAP dropping a code) must not leave stale rows active."""
+        now = datetime.now(tz=UTC)
+        stale = FaultCatalog(
+            id=uuid.uuid4(),
+            code_group="OLD-GROUP",
+            code="B001",
+            group_text="سیستم ترمز",
+            code_text="ترمز ضعیف (قدیمی)",
+            defect_class="S1",
+            defect_class_text="Critical / بحرانی",
+            is_active=True,
+            created_at=now,
+            updated_at=now,
+        )
+        repo = FakeFaultCatalogRepository([stale])
+        sap = FakeSAPFaultCatalogPort([_row("C001", "NEW-GROUP", "چراغ خراب", "S2")])
+
+        result = SyncFaultCatalogFromSAPService(repo, sap).execute()
+
+        assert result.created == 1
+        assert result.deactivated == 1
+        assert repo.get_by_id(stale.id).is_active is False
+        assert len(repo.list_active()) == 1
 
 
 class TestListFaultCatalogService:
