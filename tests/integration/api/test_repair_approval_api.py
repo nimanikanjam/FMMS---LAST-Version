@@ -311,7 +311,11 @@ class TestReadOnlySAPWorkshopDecisionAPI:
 
         decision = workshop_supervisor_client.post(
             f"/api/v1/repair-orders/{order['id']}/technical-decision/",
-            {"repairable": True, "note": "Proceed with local repair"},
+            {
+                "repairable": True,
+                "note": "Proceed with local repair",
+                "estimated_delivery_at": "2026-08-20T12:00:00Z",
+            },
             format="json",
         )
 

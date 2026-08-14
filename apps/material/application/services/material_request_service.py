@@ -193,8 +193,12 @@ class ReceiveMaterialRequestService:
         self._event_recorder = event_recorder
 
     def execute(self, dto: MaterialRequestDecisionDTO):
-        """Mark material request received and resume WAITING_PARTS repair."""
-        from apps.repair.domain.entities import RepairOrderStatus  # noqa: PLC0415
+        """Mark material request received, record consumed parts, resume repair."""
+        from apps.repair.domain.entities import (  # noqa: PLC0415
+            RepairOrderStatus,
+            RepairPart,
+        )
+        from apps.repair.domain.value_objects import PartQuantity  # noqa: PLC0415
         from core.exceptions.base_exception import FMMSConflictError  # noqa: PLC0415
 
         material_request = load_or_not_found(
@@ -220,10 +224,21 @@ class ReceiveMaterialRequestService:
             message=f"Repair order '{saved.repair_order_id}' not found.",
             details={"repair_order_id": str(saved.repair_order_id)},
         )
+        for item in saved.items:
+            order.add_part(
+                RepairPart(
+                    id=uuid.uuid4(),
+                    part_quantity=PartQuantity(
+                        material_number=item.material_number,
+                        quantity=int(item.quantity),
+                        unit_of_measure=item.unit_of_measure,
+                    ),
+                )
+            )
         if order.status == RepairOrderStatus.WAITING_PARTS:
             order.resume_after_parts()
-            order.updated_at = datetime.now(tz=UTC)
-            self._repair_repo.save(order)
+        order.updated_at = datetime.now(tz=UTC)
+        self._repair_repo.save(order)
 
         record_repair_timeline_event(
             self._event_recorder,
