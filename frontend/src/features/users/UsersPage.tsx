@@ -45,7 +45,13 @@ type FormState = {
   role: string;
   personnel_number: string;
   is_active: boolean;
+  // `vehicle` is only for the Autocomplete's display label. The ID actually
+  // submitted is `assignedVehicleId`, tracked separately so that a failed
+  // plate lookup in openEdit (deleted vehicle, network blip) can never
+  // silently wipe an existing assignment on save.
   vehicle: Vehicle | null;
+  assignedVehicleId: string | null;
+  vehicleLoadFailed: boolean;
 };
 
 const EMPTY_FORM: FormState = {
@@ -58,6 +64,8 @@ const EMPTY_FORM: FormState = {
   personnel_number: '',
   is_active: true,
   vehicle: null,
+  assignedVehicleId: null,
+  vehicleLoadFailed: false,
 };
 
 function normalizePaginated<T>(payload: { results?: T[] } | T[]): T[] {
@@ -125,11 +133,12 @@ export function UsersPage() {
   const openEdit = async (user: UserAccount) => {
     setFormError('');
     let vehicle: Vehicle | null = null;
+    let vehicleLoadFailed = false;
     if (user.assigned_vehicle_id) {
       try {
         vehicle = await api.getVehicle(user.assigned_vehicle_id);
       } catch {
-        vehicle = null;
+        vehicleLoadFailed = true;
       }
     }
     setForm({
@@ -142,6 +151,10 @@ export function UsersPage() {
       personnel_number: user.personnel_number || '',
       is_active: user.is_active,
       vehicle,
+      // Keep the existing assignment even if we couldn't resolve its plate —
+      // only the Autocomplete (explicit admin action) should change this.
+      assignedVehicleId: user.assigned_vehicle_id,
+      vehicleLoadFailed,
     });
     setDialogOpen(true);
   };
@@ -169,7 +182,7 @@ export function UsersPage() {
           full_name: form.full_name.trim(),
           role: form.role,
           personnel_number: form.personnel_number.trim(),
-          assigned_vehicle_id: form.vehicle?.id ?? null,
+          assigned_vehicle_id: form.assignedVehicleId,
           is_active: form.is_active,
           ...(form.password.trim() ? { password: form.password.trim() } : {}),
         });
@@ -181,7 +194,7 @@ export function UsersPage() {
           password: form.password.trim(),
           role: form.role,
           personnel_number: form.personnel_number.trim(),
-          assigned_vehicle_id: form.vehicle?.id ?? null,
+          assigned_vehicle_id: form.assignedVehicleId,
         });
       }
       setDialogOpen(false);
@@ -333,7 +346,14 @@ export function UsersPage() {
               options={vehicleOptions}
               value={form.vehicle}
               loading={vehicleLoading}
-              onChange={(_, next) => setForm((f) => ({ ...f, vehicle: next }))}
+              onChange={(_, next) =>
+                setForm((f) => ({
+                  ...f,
+                  vehicle: next,
+                  assignedVehicleId: next?.id ?? null,
+                  vehicleLoadFailed: false,
+                }))
+              }
               onInputChange={(_, next) => setVehicleSearch(next)}
               getOptionLabel={(option) => option.license_plate}
               isOptionEqualToValue={(option, val) => option.id === val.id}
@@ -343,6 +363,12 @@ export function UsersPage() {
               noOptionsText="خودرویی یافت نشد"
               clearOnBlur={false}
             />
+            {form.vehicleLoadFailed && (
+              <Typography variant="caption" color="warning.main">
+                پلاک فعلی این کاربر بارگذاری نشد، اما همچنان تخصیص‌یافته باقی می‌ماند مگر
+                این‌که آن را از فیلد بالا تغییر دهید.
+              </Typography>
+            )}
             {form.id && (
               <RtlSelectField
                 label="وضعیت حساب"
