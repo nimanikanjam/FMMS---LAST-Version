@@ -238,44 +238,46 @@ export function DashboardPage() {
                                     '&:last-child': {pb: {xs: 1.75, md: 2}},
                                 }}
                             >
-                                <Stack
-                                    direction={{xs: 'column', md: 'row'}}
-                                    spacing={1.5}
-                                    alignItems={{xs: 'flex-start', md: 'center'}}
+                                <Box
+                                    sx={{
+                                        display: 'grid',
+                                        gridTemplateColumns: {xs: '48px 1fr', md: '48px 1fr 24px'},
+                                        columnGap: 1.5,
+                                        rowGap: 0.5,
+                                        alignItems: 'center',
+                                    }}
                                 >
-                                    <Stack
-                                        direction="row"
-                                        spacing={1.5}
-                                        alignItems="center"
-                                        sx={{minWidth: 0, flex: 1}}
+                                    <Box
+                                        sx={{
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: (t) => t.radius('lg'),
+                                            bgcolor: 'secondary.light',
+                                            color: 'secondary.dark',
+                                            display: 'grid',
+                                            placeItems: 'center',
+                                            gridRow: {xs: '1 / span 2', md: '1'},
+                                        }}
                                     >
-                                        <Box
-                                            sx={{
-                                                width: 48,
-                                                height: 48,
-                                                borderRadius: (t) => t.radius('lg'),
-                                                bgcolor: 'secondary.light',
-                                                color: 'secondary.dark',
-                                                display: 'grid',
-                                                placeItems: 'center',
-                                                flexShrink: 0,
-                                            }}
-                                        >
-                                            <Sync fontSize="medium"/>
-                                        </Box>
-                                        <Box minWidth={0} flex={1}>
-                                            <Typography fontWeight={800}>همگام‌سازی و تراکنش‌های SAP</Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                خودرو: {formatDateTime(vehicleSummary?.last_sap_sync_at)} · راننده:{' '}
-                                                {formatDateTime(driverSummary?.last_sap_sync_at)}
-                                                {sapSummary
-                                                    ? ` · کل تراکنش‌ها: ${toFaNumber(sapSummary.total)} · ناموفق: ${toFaNumber(sapSummary.failed + sapSummary.exhausted)}`
-                                                    : ''}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                    <ChevronLeft sx={{color: 'text.secondary', display: {xs: 'none', md: 'block'}}}/>
-                                </Stack>
+                                        <Sync fontSize="medium"/>
+                                    </Box>
+                                    <Box sx={{minWidth: 0}}>
+                                        <Typography fontWeight={800}>همگام‌سازی و تراکنش‌های SAP</Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            خودرو: {formatDateTime(vehicleSummary?.last_sap_sync_at)} · راننده:{' '}
+                                            {formatDateTime(driverSummary?.last_sap_sync_at)}
+                                            {sapSummary
+                                                ? ` · کل تراکنش‌ها: ${toFaNumber(sapSummary.total)} · ناموفق: ${toFaNumber(sapSummary.failed + sapSummary.exhausted)}`
+                                                : ''}
+                                        </Typography>
+                                    </Box>
+                                    <ChevronLeft
+                                        sx={{
+                                            color: 'text.secondary',
+                                            display: {xs: 'none', md: 'block'},
+                                        }}
+                                    />
+                                </Box>
                             </CardContent>
                         </CardActionArea>
                     </Card>
