@@ -4,6 +4,7 @@ import { isNavGroup, navSections, type NavEntry, type NavGroup } from './modules
 /** Module keys a DRIVER role may access in the shell navigation. */
 const DRIVER_MODULE_KEYS = new Set([
   'dashboard',
+  'myVehicleStatus',
   'inspections',
   'handover',
   'driverExternalWorkshop',
@@ -50,6 +51,7 @@ export const PATH_MODULE_KEYS: Record<string, string> = {
   '/vehicles': 'vehicles',
   '/checklists': 'checklists',
   '/drivers': 'drivers',
+  '/my-vehicle-status': 'myVehicleStatus',
   '/inspections': 'inspections',
   '/faults': 'faults',
   '/faults/new': 'manualFault',

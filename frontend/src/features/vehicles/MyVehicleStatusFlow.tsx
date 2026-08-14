@@ -167,12 +167,12 @@ function FlowNode({
   waitingParts: boolean;
 }) {
   return (
-    <Stack direction="row" spacing={1.5} alignItems="stretch">
-      <Stack alignItems="center" sx={{ width: 32, flexShrink: 0 }}>
+    <Stack direction="row" spacing={2.25} alignItems="stretch">
+      <Stack alignItems="center" sx={{ width: 34, flexShrink: 0 }}>
         <Box
           sx={{
-            width: 32,
-            height: 32,
+            width: 34,
+            height: 34,
             borderRadius: '50%',
             display: 'grid',
             placeItems: 'center',
@@ -198,7 +198,7 @@ function FlowNode({
         </Box>
         {!isLast && <FlowConnector done={state === 'done'} />}
       </Stack>
-      <Box sx={{ pb: isLast ? 0 : 2.5, pt: 0.25 }}>
+      <Box sx={{ pb: isLast ? 0.5 : 3, pt: 0.6 }}>
         <Typography
           fontWeight={state === 'active' ? 800 : 600}
           color={
@@ -208,7 +208,7 @@ function FlowNode({
           {step.label}
         </Typography>
         {state === 'active' && waitingParts && (
-          <Typography variant="caption" color="warning.dark" fontWeight={700}>
+          <Typography variant="caption" color="warning.dark" fontWeight={700} display="block" mt={0.5}>
             در انتظار تأمین قطعه
           </Typography>
         )}

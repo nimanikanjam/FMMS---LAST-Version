@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import { LoginPage } from '../features/auth/LoginPage';
 import { VehiclePage } from '../features/vehicles/VehiclePage';
 import { DriversPage } from '../features/drivers/DriversPage';
+import { MyVehicleStatusPage } from '../features/vehicles/MyVehicleStatusPage';
 import { ChecklistsPage } from '../features/inspections/ChecklistsPage';
 import { InspectionPage } from '../features/inspections/InspectionPage';
 import { DistributionFaultsPage } from '../features/faults/DistributionFaultsPage';
@@ -53,6 +54,7 @@ const dedicatedPaths = new Set([
   '/vehicles',
   '/checklists',
   '/drivers',
+  '/my-vehicle-status',
   '/inspections',
   '/faults',
   '/faults/new',
@@ -78,6 +80,10 @@ export function App() {
         <Route path="/checklists" element={guarded('checklists', <ChecklistsPage />)} />
         <Route path="/drivers" element={guarded('drivers', <DriversPage />)} />
         <Route path="/drivers/:driverId" element={guarded('drivers', <DriversPage />)} />
+        <Route
+          path="/my-vehicle-status"
+          element={guarded('myVehicleStatus', <MyVehicleStatusPage />)}
+        />
         <Route path="/inspections" element={guarded('inspections', <InspectionPage />)} />
         <Route path="/faults" element={guarded('faults', <DistributionFaultsPage />)} />
         <Route path="/faults/new" element={guarded('manualFault', <ManualFaultPage />)} />
