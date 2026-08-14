@@ -43,6 +43,7 @@ import { RtlTextField } from '../../components/RtlTextField';
 import { FilterPanel } from '../../components/FilterPanel';
 import { RtlSelectField } from '../../components/RtlSelectField';
 import { TabbedDetailModal } from '../../components/TabbedDetailModal';
+import { MyVehicleStatusFlow } from './MyVehicleStatusFlow';
 import type {
   AssignedVehicleDriver,
   Fault,
@@ -764,6 +765,10 @@ function VehicleDetailModal({
               </CardContent>
             </Card>
           ),
+        },
+        {
+          label: 'وضعیت خودروی من',
+          content: <MyVehicleStatusFlow repairs={repairs} />,
         },
         {
           label: 'تاریخچه کیلومتر',
