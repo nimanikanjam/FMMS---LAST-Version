@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {Box, Card, CardActionArea, CardContent, Stack, Typography} from '@mui/material';
+import {Box, Card, CardActionArea, CardContent, Typography} from '@mui/material';
 import {ChevronLeft, ErrorOutline, Speed, TaskAlt} from '@mui/icons-material';
 import {
     Build,
@@ -31,14 +31,6 @@ type QuickLink = {
     tone: 'primary' | 'secondary' | 'warning' | 'success' | 'error' | 'info';
     imageSrc?: string;
 };
-
-const API_ORIGIN = (() => {
-    try {
-        return new URL(import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1').origin;
-    } catch {
-        return '';
-    }
-})();
 
 /**
  * Operations dashboard built from vehicle/driver summary APIs and queue counts.

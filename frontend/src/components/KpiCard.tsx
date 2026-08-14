@@ -1,5 +1,6 @@
 import { Box, Card, CardContent, Typography } from '@mui/material';
 import type { SvgIconComponent } from '@mui/icons-material';
+import type { TypographyVariant } from '@mui/material/styles';
 import { IconWell, type IconWellTone } from './IconWell';
 
 export function KpiCard({
@@ -8,12 +9,16 @@ export function KpiCard({
   helper,
   icon: Icon,
   tone = 'primary',
+  valueVariant = 'h2',
+  valueNoWrap = true,
 }: {
   label: string;
   value: string | number;
   helper?: string;
   icon: SvgIconComponent;
   tone?: IconWellTone;
+  valueVariant?: TypographyVariant;
+  valueNoWrap?: boolean;
 }) {
   return (
     <Card
@@ -43,7 +48,7 @@ export function KpiCard({
             >
               {label}
             </Typography>
-            <Typography variant="h2" color="text.primary" noWrap fontWeight={900}>
+            <Typography variant={valueVariant} color="text.primary" noWrap={valueNoWrap} fontWeight={900}>
               {value}
             </Typography>
             {helper && (

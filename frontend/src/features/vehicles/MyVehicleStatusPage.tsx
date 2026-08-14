@@ -244,9 +244,10 @@ export function MyVehicleStatusPage() {
             <KpiCard
               label="آخرین رویداد"
               value={latestEvent ? latestEvent.description : 'رویدادی ثبت نشده'}
-              helper={latestEvent ? formatDateTime(latestEvent.created_at) : undefined}
               icon={Notifications}
               tone="secondary"
+              valueVariant="body1"
+              valueNoWrap={false}
             />
           </KpiGrid>
 

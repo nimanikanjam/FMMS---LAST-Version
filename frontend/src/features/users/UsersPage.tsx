@@ -13,7 +13,7 @@ import {
 import { Add, Close } from '@mui/icons-material';
 import { api, ApiError } from '../../api/client';
 import { Button } from '../../components/Button';
-import { EmptyState, ErrorState, LoadingState } from '../../components/States';
+import { EmptyState, ErrorState } from '../../components/States';
 import { FeaturePage } from '../../components/FeaturePage';
 import { PageHeader } from '../../components/PageHeader';
 import { PlainStatusBadge } from '../../components/StatusBadge';
