@@ -5,7 +5,6 @@
  * data fetch) lives in this one file. To remove the feature, delete this
  * file and drop its single import + tab entry from VehiclePage.tsx.
  */
-import { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
 import {
   CheckCircle,
@@ -14,11 +13,15 @@ import {
   RadioButtonUnchecked,
   TaskAlt,
 } from '@mui/icons-material';
-import { api } from '../../api/client';
-import { EmptyState, LoadingState } from '../../components/States';
-import { PlainStatusBadge } from '../../components/StatusBadge';
+import { EmptyState } from '../../components/States';
 import type { RepairOrder } from '../../types/fmms';
 import { formatDateTime } from '../../utils/format';
+
+export type RepairTimelineEvent = {
+  event_type: string;
+  description: string;
+  created_at: string;
+};
 
 const ACTIVE_REPAIR_STATUSES = new Set([
   'CREATED',
@@ -45,7 +48,11 @@ const STOPPED_STATUS_MESSAGES: Record<string, string> = {
   NO_REPAIR_NEEDED: 'بررسی فنی نشان داد نیازی به تعمیر نبود؛ خودرو تحویل داده شد.',
 };
 
-const REPAIR_STATUS_LABELS: Record<string, string> = {
+export function isStoppedRepairStatus(status: string): boolean {
+  return status in STOPPED_STATUS_MESSAGES;
+}
+
+export const REPAIR_STATUS_LABELS: Record<string, string> = {
   CREATED: 'ثبت‌شده',
   APPROVED: 'تأییدشده توسط ترابری',
   WORKSHOP_ASSIGNED: 'ارجاع به تعمیرگاه مرکزی',
@@ -132,7 +139,7 @@ function buildSteps(order: RepairOrder): FlowStep[] {
   return [...PREFIX_STEPS, ...branch];
 }
 
-function pickActiveOrder(repairs: RepairOrder[]): RepairOrder | null {
+export function pickActiveOrder(repairs: RepairOrder[]): RepairOrder | null {
   const active = repairs.filter((r) => ACTIVE_REPAIR_STATUSES.has(r.status));
   if (active.length === 0) return null;
   return active.reduce((latest, current) =>
@@ -167,7 +174,7 @@ function FlowNode({
   waitingParts: boolean;
 }) {
   return (
-    <Stack direction="row" spacing={3.5} alignItems="stretch">
+    <Stack direction="row" spacing={3.5} alignItems="stretch" useFlexGap>
       <Stack alignItems="center" sx={{ width: 34, flexShrink: 0 }}>
         <Box
           sx={{
@@ -247,30 +254,7 @@ function StoppedBanner({ order }: { order: RepairOrder }) {
   );
 }
 
-function RecentActivity({ repairOrderId }: { repairOrderId: string }) {
-  const [events, setEvents] = useState<Array<{ event_type: string; description: string; created_at: string }>>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    api
-      .getRepairOrderTimeline(repairOrderId)
-      .then((result) => {
-        if (!cancelled) setEvents(result);
-      })
-      .catch(() => {
-        if (!cancelled) setEvents([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [repairOrderId]);
-
-  if (loading) return <LoadingState label="در حال دریافت رویدادها" />;
+function RecentActivity({ events }: { events: RepairTimelineEvent[] }) {
   if (events.length === 0) return null;
 
   const recent = [...events].reverse().slice(0, 5);
@@ -281,7 +265,7 @@ function RecentActivity({ repairOrderId }: { repairOrderId: string }) {
         آخرین رویدادها
       </Typography>
       {recent.map((event, index) => (
-        <Stack key={`${event.created_at}-${index}`} direction="row" spacing={1} alignItems="flex-start">
+        <Stack key={`${event.created_at}-${index}`} direction="row" spacing={1} alignItems="flex-start" useFlexGap>
           <Box sx={{ mt: 0.6, width: 6, height: 6, borderRadius: '50%', bgcolor: 'secondary.main', flexShrink: 0 }} />
           <Box minWidth={0} flex={1}>
             <Typography variant="body2">{event.description}</Typography>
@@ -296,7 +280,13 @@ function RecentActivity({ repairOrderId }: { repairOrderId: string }) {
 }
 
 /** "وضعیت خودروی من" — flowchart of the vehicle's current fault/repair journey. */
-export function MyVehicleStatusFlow({ repairs }: { repairs: RepairOrder[] }) {
+export function MyVehicleStatusFlow({
+  repairs,
+  events,
+}: {
+  repairs: RepairOrder[];
+  events: RepairTimelineEvent[];
+}) {
   const order = pickActiveOrder(repairs);
 
   if (!order) {
@@ -316,16 +306,6 @@ export function MyVehicleStatusFlow({ repairs }: { repairs: RepairOrder[] }) {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <PlainStatusBadge
-          label={REPAIR_STATUS_LABELS[order.status] ?? order.status}
-          tone={stopped ? 'error' : order.status === 'COMPLETED' ? 'success' : 'warning'}
-        />
-        <Typography variant="caption" color="text.secondary">
-          آخرین به‌روزرسانی: {formatDateTime(order.updated_at)}
-        </Typography>
-      </Stack>
-
       {stopped && <StoppedBanner order={order} />}
 
       <Card variant="outlined" sx={{ borderRadius: (t) => t.radius('md') }}>
@@ -356,7 +336,7 @@ export function MyVehicleStatusFlow({ repairs }: { repairs: RepairOrder[] }) {
         </CardContent>
       </Card>
 
-      <RecentActivity repairOrderId={order.id} />
+      <RecentActivity events={events} />
     </Stack>
   );
 }

@@ -8,13 +8,34 @@
  */
 import { useEffect, useState } from 'react';
 import { Card, CardActionArea, CardContent, Stack, Typography } from '@mui/material';
+import { AccessTime, Notifications } from '@mui/icons-material';
 import { api } from '../../api/client';
-import { FeaturePage } from '../../components/FeaturePage';
+import { FeaturePage, KpiGrid } from '../../components/FeaturePage';
+import { KpiCard } from '../../components/KpiCard';
+import { CarRepair, DirectionsCar } from '../../components/icons3d/Icons3D';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
 import { VehicleStatusBadge } from '../../components/StatusBadge';
-import type { AuthUser, RepairOrder, Vehicle } from '../../types/fmms';
-import { MyVehicleStatusFlow } from './MyVehicleStatusFlow';
+import type { AuthUser, RepairOrder, Vehicle, VehicleStatus } from '../../types/fmms';
+import { formatDateTime } from '../../utils/format';
+import {
+  MyVehicleStatusFlow,
+  pickActiveOrder,
+  REPAIR_STATUS_LABELS,
+  type RepairTimelineEvent,
+} from './MyVehicleStatusFlow';
+
+const VEHICLE_STATUS_TONE: Record<VehicleStatus, 'success' | 'warning' | 'error' | 'secondary'> = {
+  ACTIVE: 'success',
+  UNDER_REPAIR: 'warning',
+  UNDER_EXTERNAL_REPAIR: 'warning',
+  WAITING_DRIVER_CONFIRMATION: 'warning',
+  EXITED_CENTER: 'secondary',
+  SUSPENDED: 'error',
+  OUT_OF_SERVICE: 'error',
+  DECOMMISSIONED: 'error',
+  INACTIVE: 'secondary',
+};
 
 const VEHICLE_PAGE_SIZE = 50;
 
@@ -47,6 +68,7 @@ export function MyVehicleStatusPage() {
   const [assignedVehicles, setAssignedVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [repairs, setRepairs] = useState<RepairOrder[]>([]);
+  const [events, setEvents] = useState<RepairTimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -97,6 +119,30 @@ export function MyVehicleStatusPage() {
       cancelled = true;
     };
   }, []);
+
+  const activeOrder = pickActiveOrder(repairs);
+  const activeOrderId = activeOrder?.id ?? '';
+
+  useEffect(() => {
+    if (!activeOrderId) {
+      setEvents([]);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getRepairOrderTimeline(activeOrderId)
+      .then((result) => {
+        if (!cancelled) setEvents(result);
+      })
+      .catch(() => {
+        if (!cancelled) setEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrderId]);
+
+  const latestEvent = events[events.length - 1] ?? null;
 
   const openVehicle = async (vehicle: Vehicle) => {
     setLoading(true);
@@ -170,23 +216,41 @@ export function MyVehicleStatusPage() {
 
       {!loading && !error && selectedVehicle && (
         <Stack spacing={2}>
-          <Card variant="outlined" sx={{ borderRadius: (t) => t.radius('md') }}>
-            <CardContent sx={{ p: 1.75, '&:last-child': { pb: 1.75 } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-                <Stack>
-                  <Typography fontWeight={900} fontSize="1.1rem">
-                    {selectedVehicle.license_plate}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    شناسه خودرو: {selectedVehicle.vehicle_number}
-                  </Typography>
-                </Stack>
-                <VehicleStatusBadge status={selectedVehicle.status} label={selectedVehicle.status_label} />
-              </Stack>
-            </CardContent>
-          </Card>
+          <KpiGrid mdColumns={4}>
+            <KpiCard
+              label="پلاک و شناسه خودرو"
+              value={selectedVehicle.license_plate}
+              helper={`شناسه: ${selectedVehicle.vehicle_number}`}
+              icon={DirectionsCar}
+              tone="primary"
+            />
+            <KpiCard
+              label="وضعیت خودرو"
+              value={selectedVehicle.status_label}
+              icon={CarRepair}
+              tone={VEHICLE_STATUS_TONE[selectedVehicle.status] ?? 'secondary'}
+            />
+            <KpiCard
+              label="آخرین به‌روزرسانی"
+              value={
+                activeOrder
+                  ? formatDateTime(activeOrder.updated_at)
+                  : formatDateTime(selectedVehicle.updated_at)
+              }
+              helper={activeOrder ? REPAIR_STATUS_LABELS[activeOrder.status] ?? activeOrder.status : undefined}
+              icon={AccessTime}
+              tone="info"
+            />
+            <KpiCard
+              label="آخرین رویداد"
+              value={latestEvent ? latestEvent.description : 'رویدادی ثبت نشده'}
+              helper={latestEvent ? formatDateTime(latestEvent.created_at) : undefined}
+              icon={Notifications}
+              tone="secondary"
+            />
+          </KpiGrid>
 
-          <MyVehicleStatusFlow repairs={repairs} />
+          <MyVehicleStatusFlow repairs={repairs} events={events} />
 
           {assignedVehicles.length > 1 && (
             <Typography
