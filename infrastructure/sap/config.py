@@ -32,6 +32,11 @@ Optional environment variables:
         (default: ZI_FLEET_CAT_B_CDS — same view as the object-part/
         daily-inspection catalog)
     SAP_FAULT_CATALOG_ENTITY_SET — Fault catalog entity set (default: empty)
+    SAP_INSPECTION_DEFECT_CATALOG_SERVICE — Real SAP defect catalog (with
+        DefectClass/severity), offered as fault-type options while a driver
+        is reporting a failed daily-inspection item
+        (default: ZI_B_DEFECTCATALOG9_CDS)
+    SAP_INSPECTION_DEFECT_CATALOG_ENTITY_SET — entity set (default: empty)
     SAP_CENTRAL_STOCK_SERVICE    — Central warehouse stock OData service
         (default: ZI_STOCK_KH08_CDS)
     SAP_CENTRAL_STOCK_ENTITY_SET — Central stock entity set (default: empty)
@@ -82,6 +87,8 @@ class SAPConfig:
     object_part_catalog_entity_set: str
     fault_catalog_service: str
     fault_catalog_entity_set: str
+    inspection_defect_catalog_service: str
+    inspection_defect_catalog_entity_set: str
     central_stock_service: str
     central_stock_entity_set: str
 
@@ -139,6 +146,14 @@ class SAPConfig:
             "SAP_FAULT_CATALOG_ENTITY_SET",
             "",
         )
+        inspection_defect_catalog_service = os.environ.get(
+            "SAP_INSPECTION_DEFECT_CATALOG_SERVICE",
+            "ZI_B_DEFECTCATALOG9_CDS",
+        )
+        inspection_defect_catalog_entity_set = os.environ.get(
+            "SAP_INSPECTION_DEFECT_CATALOG_ENTITY_SET",
+            "",
+        )
         central_stock_service = os.environ.get(
             "SAP_CENTRAL_STOCK_SERVICE",
             "ZI_STOCK_KH08_CDS",
@@ -192,6 +207,8 @@ class SAPConfig:
             object_part_catalog_entity_set=object_part_catalog_entity_set,
             fault_catalog_service=fault_catalog_service,
             fault_catalog_entity_set=fault_catalog_entity_set,
+            inspection_defect_catalog_service=inspection_defect_catalog_service,
+            inspection_defect_catalog_entity_set=inspection_defect_catalog_entity_set,
             central_stock_service=central_stock_service,
             central_stock_entity_set=central_stock_entity_set,
         )

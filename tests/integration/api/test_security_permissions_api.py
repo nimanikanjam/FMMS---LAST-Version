@@ -92,7 +92,7 @@ class TestViewerPermissions:
 
 
 class TestTechnicianVsSupervisorActions:
-    """Supervisor-gated actions reject technicians."""
+    """Supervisor-gated actions: read-only vs. operational-unit-supervisor roles."""
 
     def test_technician_cannot_create_vehicle(
         self, technician_client: APIClient
@@ -112,10 +112,16 @@ class TestTechnicianVsSupervisorActions:
         )
         assert response.status_code == 405
 
-    def test_technician_cannot_change_vehicle_status(
+    def test_workshop_supervisor_can_change_vehicle_status(
         self, authenticated_client: APIClient, technician_client: APIClient
     ) -> None:
-        """Vehicle status changes require an operational-unit supervisor or ADMIN."""
+        """WORKSHOP_SUPERVISOR is an operational-unit supervisor and may change status.
+
+        ``technician_client`` is a WORKSHOP_SUPERVISOR-role user in the
+        current 6-role model (the old standalone TECHNICIAN role was merged
+        into WORKSHOP_SUPERVISOR — see FMMSUserRole), which IS one of the
+        supervisor roles IsSupervisorOrAbove grants write access to.
+        """
         vehicle = create_vehicle(
             authenticated_client, plate="12TECH02", vin="1HGCM82633A004396"
         )
@@ -124,7 +130,8 @@ class TestTechnicianVsSupervisorActions:
             {"status": "INACTIVE"},
             format="json",
         )
-        assert response.status_code == 403
+        assert response.status_code == 200
+        assert response.data["status"] == "INACTIVE"
 
     def test_supervisor_can_change_vehicle_status(
         self, authenticated_client: APIClient, supervisor_client: APIClient

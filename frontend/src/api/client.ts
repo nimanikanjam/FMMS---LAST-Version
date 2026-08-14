@@ -9,6 +9,7 @@ import type {
   FaultCatalog,
   FailureSeverity,
   Inspection,
+  InspectionDefectOption,
   InspectionItemInput,
   InspectionTemplate,
   InspectionType,
@@ -774,6 +775,16 @@ export const api = {
   listInspectionTemplates() {
     return request<Paginated<InspectionTemplate> | InspectionTemplate[]>(
       '/inspection-templates/',
+    );
+  },
+
+  /** Fault-type options (SAP's real defect catalog) for the daily-inspection fail step. */
+  listInspectionDefectOptions(category?: string) {
+    const params = new URLSearchParams();
+    if (category?.trim()) params.set('category', category.trim());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return request<Paginated<InspectionDefectOption> | InspectionDefectOption[]>(
+      `/inspection-defect-options/${query}`,
     );
   },
 

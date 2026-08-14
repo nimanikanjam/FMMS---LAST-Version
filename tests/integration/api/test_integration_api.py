@@ -113,5 +113,6 @@ class TestIntegrationAPI:
             "vehicles",
             "inspection_templates",
             "fault_catalog",
+            "inspection_defect_options",
             "central_stock",
         }

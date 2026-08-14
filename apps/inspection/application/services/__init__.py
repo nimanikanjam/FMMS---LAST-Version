@@ -16,6 +16,10 @@ from apps.inspection.application.services.report_inspection_fault_service import
 from apps.inspection.application.services.submit_inspection_service import (
     SubmitInspectionService,
 )
+from apps.inspection.application.services.sync_inspection_defect_options_from_sap_service import (
+    ListInspectionDefectOptionsService,
+    SyncInspectionDefectOptionsFromSAPService,
+)
 from apps.inspection.application.services.sync_inspection_templates_from_sap_service import (
     ListInspectionTemplatesService,
     SyncInspectionTemplatesFromSAPService,
@@ -30,4 +34,6 @@ __all__ = [
     "ListInspectionsService",
     "ListInspectionTemplatesService",
     "SyncInspectionTemplatesFromSAPService",
+    "ListInspectionDefectOptionsService",
+    "SyncInspectionDefectOptionsFromSAPService",
 ]

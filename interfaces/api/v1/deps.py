@@ -60,9 +60,16 @@ from apps.inspection.application.services.report_inspection_fault_service import
 from apps.inspection.application.services.submit_inspection_service import (
     SubmitInspectionService,
 )
+from apps.inspection.application.services.sync_inspection_defect_options_from_sap_service import (
+    ListInspectionDefectOptionsService,
+    SyncInspectionDefectOptionsFromSAPService,
+)
 from apps.inspection.application.services.sync_inspection_templates_from_sap_service import (
     ListInspectionTemplatesService,
     SyncInspectionTemplatesFromSAPService,
+)
+from apps.inspection.infrastructure.defect_option_repositories import (
+    DjangoInspectionDefectOptionRepository,
 )
 from apps.inspection.infrastructure.repositories import DjangoInspectionRepository
 from apps.inspection.infrastructure.template_repositories import (
@@ -356,6 +363,11 @@ def get_inspection_template_repository() -> DjangoInspectionTemplateRepository:
     return DjangoInspectionTemplateRepository()
 
 
+def get_inspection_defect_option_repository() -> DjangoInspectionDefectOptionRepository:
+    """Return the inspection defect-catalog-option repository."""
+    return DjangoInspectionDefectOptionRepository()
+
+
 def get_fault_repository() -> DjangoFaultRepository:
     """Return the fault repository."""
     return DjangoFaultRepository()
@@ -627,6 +639,26 @@ def get_sync_inspection_templates_from_sap_service() -> (
     )
 
 
+def get_list_inspection_defect_options_service() -> ListInspectionDefectOptionsService:
+    """Return ListInspectionDefectOptionsService."""
+    return ListInspectionDefectOptionsService(get_inspection_defect_option_repository())
+
+
+def get_sync_inspection_defect_options_from_sap_service() -> (
+    SyncInspectionDefectOptionsFromSAPService
+):
+    """Return SyncInspectionDefectOptionsFromSAPService."""
+    config = SAPConfig.from_env()
+    return SyncInspectionDefectOptionsFromSAPService(
+        get_inspection_defect_option_repository(),
+        FaultCatalogODataAdapter(
+            _sap_odata_client(),
+            service=config.inspection_defect_catalog_service,
+            entity_set=config.inspection_defect_catalog_entity_set,
+        ),
+    )
+
+
 def get_list_fault_catalog_service() -> ListFaultCatalogService:
     """Return ListFaultCatalogService."""
     return ListFaultCatalogService(get_fault_catalog_repository())
@@ -669,6 +701,7 @@ def get_run_sap_sync_service() -> RunSAPSyncService:
         get_sync_vehicles_from_sap_service(),
         get_sync_inspection_templates_from_sap_service(),
         get_sync_fault_catalog_from_sap_service(),
+        get_sync_inspection_defect_options_from_sap_service(),
         get_sync_central_stock_from_sap_service(),
     )
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type UIEvent } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Card,
   CardContent,
@@ -28,11 +29,13 @@ import type {
   ChecklistResult,
   Driver,
   FailureSeverity,
+  InspectionDefectOption,
   InspectionTemplate,
   OdometerReading,
   Vehicle,
 } from '../../types/fmms';
 import { toFaNumber } from '../../utils/format';
+import { severityFromDefectClass } from '../../utils/severity';
 
 type ChecklistDraft = {
   templateId: string;
@@ -42,15 +45,17 @@ type ChecklistDraft = {
   result: ChecklistResult | '';
   notes: string;
   severity: FailureSeverity | '';
-  errors: { result?: string; notes?: string; severity?: string };
+  defectOptionId: string;
+  defectOptionLabel: string;
+  errors: { result?: string; notes?: string; defectOption?: string };
 };
 
-const SEVERITY_OPTIONS: Array<{ value: FailureSeverity; label: string }> = [
-  { value: 'LOW', label: 'کم' },
-  { value: 'MEDIUM', label: 'متوسط' },
-  { value: 'HIGH', label: 'زیاد' },
-  { value: 'CRITICAL', label: 'بحرانی' },
-];
+const SEVERITY_LABELS: Record<FailureSeverity, string> = {
+  LOW: 'کم',
+  MEDIUM: 'متوسط',
+  HIGH: 'زیاد',
+  CRITICAL: 'بحرانی',
+};
 
 const VEHICLE_PAGE_SIZE = 20;
 
@@ -247,7 +252,7 @@ function ResultToggle({
 function isItemComplete(item: ChecklistDraft): boolean {
   if (!item.result) return false;
   if (item.result === 'FAIL') {
-    return Boolean(item.notes.trim() && item.severity);
+    return Boolean(item.defectOptionId && item.severity);
   }
   return true;
 }
@@ -332,6 +337,9 @@ export function InspectionPage() {
   const [items, setItems] = useState<ChecklistDraft[]>([]);
   const [wizardIndex, setWizardIndex] = useState(0);
 
+  const [defectOptions, setDefectOptions] = useState<InspectionDefectOption[]>([]);
+  const [defectOptionsLoading, setDefectOptionsLoading] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [completed, setCompleted] = useState(false);
@@ -382,6 +390,30 @@ export function InspectionPage() {
   const isLastItem = items.length > 0 && wizardIndex >= items.length - 1;
   const currentComplete = currentItem ? isItemComplete(currentItem) : false;
   const checklistComplete = items.length > 0 && items.every(isItemComplete);
+
+  useEffect(() => {
+    if (currentItem?.result !== 'FAIL') {
+      setDefectOptions([]);
+      return;
+    }
+    let cancelled = false;
+    setDefectOptionsLoading(true);
+    api
+      .listInspectionDefectOptions(currentItem.category)
+      .then((page) => {
+        if (cancelled) return;
+        setDefectOptions(Array.isArray(page) ? page : (page.results ?? []));
+      })
+      .catch(() => {
+        if (!cancelled) setDefectOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDefectOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentItem?.result, currentItem?.category]);
 
   const odometerValid = useMemo(() => {
     const odometerValue = Number(odometer);
@@ -468,6 +500,8 @@ export function InspectionPage() {
             result: '',
             notes: '',
             severity: '',
+            defectOptionId: '',
+            defectOptionLabel: '',
             errors: {},
           })),
         );
@@ -623,6 +657,8 @@ export function InspectionPage() {
       result: next,
       notes: next === 'FAIL' ? currentItem.notes : '',
       severity: next === 'FAIL' ? currentItem.severity : '',
+      defectOptionId: next === 'FAIL' ? currentItem.defectOptionId : '',
+      defectOptionLabel: next === 'FAIL' ? currentItem.defectOptionLabel : '',
     });
     if (next === 'PASS' && !isLastItem) {
       // Advance after PASS so the driver sees one item at a time.
@@ -638,9 +674,8 @@ export function InspectionPage() {
     if (!currentItem.result) {
       errors.result = 'وضعیت الزامی است';
     }
-    if (currentItem.result === 'FAIL') {
-      if (!currentItem.notes.trim()) errors.notes = 'شرح خرابی الزامی است';
-      if (!currentItem.severity) errors.severity = 'شدت خرابی الزامی است';
+    if (currentItem.result === 'FAIL' && !currentItem.defectOptionId) {
+      errors.defectOption = 'انتخاب نوع خرابی الزامی است';
     }
     if (Object.keys(errors).length) {
       updateItem(wizardIndex, { errors });
@@ -674,15 +709,9 @@ export function InspectionPage() {
           errors.result = 'وضعیت الزامی است';
           ok = false;
         }
-        if (item.result === 'FAIL') {
-          if (!item.notes.trim()) {
-            errors.notes = 'شرح خرابی الزامی است';
-            ok = false;
-          }
-          if (!item.severity) {
-            errors.severity = 'شدت خرابی الزامی است';
-            ok = false;
-          }
+        if (item.result === 'FAIL' && !item.defectOptionId) {
+          errors.defectOption = 'انتخاب نوع خرابی الزامی است';
+          ok = false;
         }
         return { ...item, errors };
       }),
@@ -1560,7 +1589,7 @@ export function InspectionPage() {
                           borderColor:
                             currentItem.errors.result ||
                             currentItem.errors.notes ||
-                            currentItem.errors.severity
+                            currentItem.errors.defectOption
                               ? 'error.main'
                               : 'divider',
                           borderRadius: (t) => t.radius('md'),
@@ -1633,44 +1662,52 @@ export function InspectionPage() {
                         {currentItem.result === 'FAIL' && (
                           <Stack spacing={1.5} mt={2.25}>
                             <Alert severity="warning" sx={{ py: 0.5 }}>
-                              برای ادامه، شرح و شدت خرابی را وارد کنید.
+                              برای ادامه، نوع خرابی را از فهرست انتخاب کنید.
                             </Alert>
-                            <RtlSelectField
-                              label="شدت خرابی"
-                              value={currentItem.severity}
-                              displayEmpty
-                              onChange={(event) =>
+                            <Autocomplete
+                              options={defectOptions}
+                              loading={defectOptionsLoading}
+                              value={
+                                defectOptions.find(
+                                  (option) => option.id === currentItem.defectOptionId,
+                                ) ?? null
+                              }
+                              onChange={(_, next) =>
                                 updateItem(wizardIndex, {
-                                  severity: event.target.value as FailureSeverity,
+                                  defectOptionId: next?.id ?? '',
+                                  defectOptionLabel: next?.code_text ?? '',
+                                  severity: next ? severityFromDefectClass(next.defect_class) : '',
+                                  notes:
+                                    next && !currentItem.notes.trim()
+                                      ? next.code_text
+                                      : currentItem.notes,
                                 })
                               }
-                              error={Boolean(currentItem.errors.severity)}
-                              fullWidth
-                            >
-                              <MenuItem value="">
-                                <em>انتخاب شدت</em>
-                              </MenuItem>
-                              {SEVERITY_OPTIONS.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </MenuItem>
-                              ))}
-                            </RtlSelectField>
-                            {currentItem.errors.severity && (
-                              <Typography variant="caption" color="error.main">
-                                {currentItem.errors.severity}
+                              getOptionLabel={(option) => option.code_text}
+                              isOptionEqualToValue={(option, val) => option.id === val.id}
+                              noOptionsText="موردی یافت نشد"
+                              renderInput={(params) => (
+                                <RtlTextField
+                                  {...params}
+                                  label="نوع خرابی"
+                                  error={Boolean(currentItem.errors.defectOption)}
+                                  helperText={currentItem.errors.defectOption}
+                                />
+                              )}
+                            />
+                            {currentItem.defectOptionId && currentItem.severity && (
+                              <Typography variant="caption" color="text.secondary">
+                                شدت خرابی: {SEVERITY_LABELS[currentItem.severity]}
                               </Typography>
                             )}
                             <RtlTextField
-                              label="شرح خرابی"
+                              label="توضیح تکمیلی (اختیاری)"
                               value={currentItem.notes}
                               onChange={(event) =>
                                 updateItem(wizardIndex, { notes: event.target.value })
                               }
                               multiline
-                              minRows={3}
-                              error={Boolean(currentItem.errors.notes)}
-                              helperText={currentItem.errors.notes}
+                              minRows={2}
                               fullWidth
                             />
                           </Stack>
@@ -1706,7 +1743,7 @@ export function InspectionPage() {
                               {checklistComplete
                                 ? 'چک‌لیست کامل شد'
                                 : currentItem.result === 'FAIL'
-                                  ? 'شرح و شدت را تکمیل کنید'
+                                  ? 'نوع خرابی را انتخاب کنید'
                                   : 'وضعیت این مورد را مشخص کنید'}
                             </Typography>
                           )}

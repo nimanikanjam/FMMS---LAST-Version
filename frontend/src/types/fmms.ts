@@ -237,6 +237,20 @@ export interface FaultCatalog {
   updated_at: string;
 }
 
+/** SAP's real defect catalog (with severity) — fault-type options offered while failing a daily-inspection item. */
+export interface InspectionDefectOption {
+  id: string;
+  code_group: string;
+  code: string;
+  group_text: string;
+  code_text: string;
+  defect_class: string;
+  defect_class_text: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RepairOrder {
   id: string;
   vehicle_id: string;

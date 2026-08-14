@@ -110,3 +110,39 @@ class InspectionTemplateModel(BusinessRecordModel):
 
     def __str__(self) -> str:
         return f"{self.code_group}/{self.code}: {self.code_text}"
+
+
+class InspectionDefectOptionModel(BusinessRecordModel):
+    """Local cache of SAP's real defect catalog (with severity), offered as
+    fault-type options while a driver fails a daily-inspection checklist item.
+    """
+
+    code_group = models.CharField(max_length=40, db_index=True)
+    code = models.CharField(max_length=40, db_index=True)
+    group_text = models.CharField(max_length=100)
+    code_text = models.CharField(max_length=500)
+    defect_class = models.CharField(max_length=20, db_index=True)
+    defect_class_text = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        app_label = "inspection"
+        db_table = "inspection_defect_option"
+        verbose_name = "Inspection Defect Option"
+        verbose_name_plural = "Inspection Defect Options"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["code", "code_group"],
+                condition=models.Q(is_deleted=False),
+                name="unique_active_inspection_defect_option_sap_key",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["is_active", "is_deleted"],
+                name="insp_defect_active_deleted_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.code_group}/{self.code}: {self.code_text}"

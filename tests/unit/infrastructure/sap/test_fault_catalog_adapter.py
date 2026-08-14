@@ -9,11 +9,21 @@ from infrastructure.sap.client.mock.mock_client import MockSAPClient, SAPMockSce
 
 
 class TestFaultCatalogODataAdapter:
-    """Cover XML-backed SAP fault catalog reads."""
+    """Cover XML-backed SAP fault catalog reads.
+
+    ``FaultCatalogODataAdapter``'s default service now points at the object-
+    part catalog (manual fault reporting reuses that source — see
+    ``sync_fault_catalog_from_sap_service``), which carries no DefectClass
+    columns. The real defect catalog (with DefectClass/severity) is still
+    read through this same adapter class, just with an explicit
+    ``ZI_B_DEFECTCATALOG9_CDS`` service — the way
+    ``sync_inspection_defect_options_from_sap_service`` uses it for the
+    daily-inspection fault-type picker. These tests exercise that path.
+    """
 
     def test_reads_fault_catalog_from_xml_fixture(self) -> None:
         client = MockSAPClient(scenario=SAPMockScenario.SUCCESS)
-        adapter = FaultCatalogODataAdapter(client)
+        adapter = FaultCatalogODataAdapter(client, service="ZI_B_DEFECTCATALOG9_CDS")
 
         result = adapter.list_defect_codes()
 
@@ -26,7 +36,7 @@ class TestFaultCatalogODataAdapter:
 
     def test_get_defect_code_by_code_and_group(self) -> None:
         client = MockSAPClient(scenario=SAPMockScenario.SUCCESS)
-        adapter = FaultCatalogODataAdapter(client)
+        adapter = FaultCatalogODataAdapter(client, service="ZI_B_DEFECTCATALOG9_CDS")
 
         result = adapter.get_defect_code("B001", "BRAKE-D")
 

@@ -30,6 +30,7 @@ import { RtlSelectField } from '../../components/RtlSelectField';
 import { RtlTextField } from '../../components/RtlTextField';
 import type { FailureSeverity, Fault, FaultCatalog, Vehicle } from '../../types/fmms';
 import { toFaNumber } from '../../utils/format';
+import { severityFromDefectClass } from '../../utils/severity';
 
 const VEHICLE_PAGE_SIZE = 100;
 const CATALOG_PAGE_SIZE = 500;
@@ -58,14 +59,6 @@ type CatalogGroup = {
 function normalizePaginated<T>(payload: { results?: T[] } | T[]): T[] {
   if (Array.isArray(payload)) return payload;
   return payload.results ?? [];
-}
-
-function severityFromDefectClass(defectClass: string): FailureSeverity {
-  const value = defectClass.trim().toUpperCase();
-  if (value === 'S1') return 'CRITICAL';
-  if (value === 'S2') return 'HIGH';
-  if (value === 'S3') return 'MEDIUM';
-  return 'LOW';
 }
 
 function maxSeverity(values: FailureSeverity[]): FailureSeverity {
