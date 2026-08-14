@@ -64,6 +64,7 @@ export const PATH_MODULE_KEYS: Record<string, string> = {
   '/sap': 'sap',
   '/components': 'components',
   '/materials': 'materials',
+  '/users': 'users',
   '/settings': 'settings',
 };
 

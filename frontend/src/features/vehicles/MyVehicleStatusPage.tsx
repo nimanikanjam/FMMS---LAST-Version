@@ -60,6 +60,18 @@ export function MyVehicleStatusPage() {
         if (cancelled) return;
         setUser(me);
 
+        if (me.assigned_vehicle_id) {
+          const [vehicle, repairsResult] = await Promise.all([
+            api.getVehicle(me.assigned_vehicle_id),
+            api.listRepairOrders({ vehicleId: me.assigned_vehicle_id }),
+          ]);
+          if (cancelled) return;
+          setAssignedVehicles([vehicle]);
+          setSelectedVehicle(vehicle);
+          setRepairs(repairsResult.results ?? []);
+          return;
+        }
+
         const customerNumber = me.linked_driver?.customer_number;
         if (!customerNumber) return;
 
@@ -113,14 +125,17 @@ export function MyVehicleStatusPage() {
 
       {!loading && error && <ErrorState message={error} onRetry={() => window.location.reload()} />}
 
-      {!loading && !error && user && !user.linked_driver && (
+      {!loading && !error && user && !user.linked_driver && !user.assigned_vehicle_id && (
         <EmptyState
           title="این صفحه مخصوص راننده‌هاست"
-          subtitle="حساب کاربری شما به‌عنوان راننده در سامانه ثبت نشده است."
+          subtitle="حساب کاربری شما به‌عنوان راننده در سامانه ثبت نشده و خودرویی هم به شما تخصیص نیافته است."
         />
       )}
 
-      {!loading && !error && user?.linked_driver && assignedVehicles.length === 0 && (
+      {!loading &&
+        !error &&
+        (user?.linked_driver || user?.assigned_vehicle_id) &&
+        assignedVehicles.length === 0 && (
         <EmptyState
           title="خودرویی به شما اساین نشده است"
           subtitle="با واحد ترابری هماهنگ کنید تا خودرویی به شما تخصیص یابد."

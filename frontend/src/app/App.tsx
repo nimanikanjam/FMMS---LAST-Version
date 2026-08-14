@@ -20,6 +20,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { SapTransactionsPage } from '../features/sap/SapTransactionsPage';
 import { ComponentShowcasePage } from '../features/showcase/ComponentShowcasePage';
 import { MaterialsPage } from '../features/materials/MaterialsPage';
+import { UsersPage } from '../features/users/UsersPage';
 import { modules } from './modules';
 import { RequireModule } from './RequireModule';
 
@@ -67,6 +68,7 @@ const dedicatedPaths = new Set([
   '/materials',
   '/sap',
   '/components',
+  '/users',
 ]);
 
 export function App() {
@@ -104,6 +106,7 @@ export function App() {
         />
         <Route path="/materials" element={guarded('materials', <MaterialsPage />)} />
         <Route path="/sap" element={guarded('sap', <SapTransactionsPage />)} />
+        <Route path="/users" element={guarded('users', <UsersPage />)} />
         <Route path="/components" element={guarded('components', <ComponentShowcasePage />)} />
         {modules
           .filter((item) => !item.enabled && !dedicatedPaths.has(item.path))

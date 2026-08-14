@@ -12,7 +12,26 @@ from rest_framework_simplejwt.serializers import (
 )
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken, Token
 
+from apps.authentication.infrastructure.models import FMMSUser, FMMSUserRole
+
 _TOKEN_TYPE = "Bearer"
+
+
+def _resolve_assigned_vehicle_plate(assigned_vehicle_id: Any) -> str | None:
+    """Best-effort lookup of the license plate for an admin-assigned vehicle.
+
+    Cross-domain by ID only — never imports the vehicle app's ORM models.
+    Returns None if unassigned or if the vehicle app is unreachable.
+    """
+    if not assigned_vehicle_id:
+        return None
+    try:
+        from interfaces.api.v1 import deps  # noqa: PLC0415
+
+        vehicle = deps.get_vehicle_repository().get_by_id(assigned_vehicle_id)
+    except Exception:  # noqa: BLE001 — profile must not fail if vehicle lookup errors
+        return None
+    return vehicle.license_plate.value
 
 
 def _expires_at(token: Token) -> str:
@@ -67,10 +86,15 @@ class UserProfileSerializer(serializers.Serializer):
     is_staff = serializers.BooleanField(read_only=True)
     is_superuser = serializers.BooleanField(read_only=True)
     linked_driver = LinkedDriverSerializer(read_only=True, allow_null=True, required=False)
+    assigned_vehicle_id = serializers.UUIDField(read_only=True, allow_null=True, required=False)
+    assigned_vehicle_plate = serializers.CharField(read_only=True, allow_null=True, required=False)
 
     def to_representation(self, instance: Any) -> dict[str, Any]:
-        """Include SAP driver link resolved by personnel_number when present."""
+        """Include SAP driver link and admin-assigned vehicle plate when present."""
         data = super().to_representation(instance)
+        data["assigned_vehicle_plate"] = _resolve_assigned_vehicle_plate(
+            getattr(instance, "assigned_vehicle_id", None)
+        )
         personnel = str(getattr(instance, "personnel_number", "") or "").strip()
         data["personnel_number"] = personnel
         data["linked_driver"] = None
@@ -110,3 +134,66 @@ class TokenRefreshResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
     token_type = serializers.CharField()
     access_expires_at = serializers.DateTimeField()
+
+
+class UserAccountSerializer(serializers.ModelSerializer):
+    """Admin-facing CRUD serializer for FMMS login accounts.
+
+    ``assigned_vehicle_id`` is a loose cross-domain reference (no FK) that
+    lets an admin manually pin a vehicle/plate to a user, independent of
+    the SAP personnel-number driver linkage.
+    """
+
+    password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True, style={"input_type": "password"}
+    )
+    assigned_vehicle_plate = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FMMSUser
+        fields = [
+            "id",
+            "username",
+            "email",
+            "full_name",
+            "role",
+            "personnel_number",
+            "assigned_vehicle_id",
+            "assigned_vehicle_plate",
+            "is_active",
+            "password",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_assigned_vehicle_plate(self, instance: FMMSUser) -> str | None:
+        """Resolve the license plate for the assigned vehicle, if any."""
+        return _resolve_assigned_vehicle_plate(instance.assigned_vehicle_id)
+
+    def validate_role(self, value: str) -> str:
+        """Restrict role to known FMMS roles."""
+        if value not in FMMSUserRole.values:
+            raise serializers.ValidationError("Unknown role.")
+        return value
+
+    def create(self, validated_data: dict[str, Any]) -> FMMSUser:
+        """Create a user via the manager so the password is hashed."""
+        password = validated_data.pop("password", "") or None
+        return FMMSUser.objects.create_user(
+            username=validated_data.pop("username"),
+            email=validated_data.pop("email"),
+            full_name=validated_data.pop("full_name"),
+            password=password,
+            **validated_data,
+        )
+
+    def update(self, instance: FMMSUser, validated_data: dict[str, Any]) -> FMMSUser:
+        """Update account fields; only touch the password when provided."""
+        password = validated_data.pop("password", "")
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance

@@ -54,6 +54,7 @@ export const modules: AppModule[] = [
   { key: 'workshop', label: 'تعمیرگاه مرکزی', path: '/workshop', icon: Build, enabled: true },
   { key: 'materials', label: 'قطعات و انبار', path: '/materials', icon: Inventory2, enabled: true },
   { key: 'sap', label: 'یکپارچه‌سازی SAP', path: '/sap', icon: Sync, enabled: true },
+  { key: 'users', label: 'کاربران', path: '/users', icon: PeopleAlt, enabled: true },
   { key: 'settings', label: 'تنظیمات', path: '/settings', icon: Settings, enabled: false },
 ];
 
@@ -110,6 +111,12 @@ export const navSections: Array<{ label: string; entries: NavEntry[] }> = [
   },
   {
     label: 'مدیریت',
-    entries: [byKey('components'), byKey('materials'), byKey('sap'), byKey('settings')],
+    entries: [
+      byKey('components'),
+      byKey('materials'),
+      byKey('sap'),
+      byKey('users'),
+      byKey('settings'),
+    ],
   },
 ];

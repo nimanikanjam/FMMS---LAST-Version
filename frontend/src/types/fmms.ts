@@ -20,8 +20,24 @@ export interface AuthUser {
   role: string;
   personnel_number?: string;
   linked_driver?: LinkedDriver | null;
+  assigned_vehicle_id?: string | null;
+  assigned_vehicle_plate?: string | null;
   is_staff: boolean;
   is_superuser: boolean;
+}
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  email: string;
+  full_name: string;
+  role: string;
+  personnel_number: string;
+  assigned_vehicle_id: string | null;
+  assigned_vehicle_plate: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LoginResponse {

@@ -82,6 +82,16 @@ class FMMSUser(AbstractBaseUser, PermissionsMixin):
             "driver/employee master data for role-scoped access."
         ),
     )
+    assigned_vehicle_id = models.UUIDField(
+        null=True,
+        blank=True,
+        default=None,
+        db_index=True,
+        help_text=(
+            "Vehicle manually assigned by an admin (cross-domain by ID only — "
+            "no FK to the vehicle app)."
+        ),
+    )
     is_active = models.BooleanField(
         default=True,
         help_text="Inactive users cannot log in.",

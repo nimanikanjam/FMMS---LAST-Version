@@ -20,6 +20,7 @@ import type {
   SAPSyncRun,
   SAPTransaction,
   SAPTransactionSummary,
+  UserAccount,
   Vehicle,
   VehicleDriverAssignmentHistory,
   VehicleHandover,
@@ -232,6 +233,48 @@ export const api = {
 
   me() {
     return request<AuthUser>('/auth/me/');
+  },
+
+  listUsers(options?: { page?: number; pageSize?: number }) {
+    const params = new URLSearchParams();
+    if (options?.page) params.set('page', String(options.page));
+    if (options?.pageSize) params.set('page_size', String(options.pageSize));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return request<Paginated<UserAccount>>(`/auth/users/${query}`);
+  },
+
+  createUser(payload: {
+    username: string;
+    email: string;
+    full_name: string;
+    password: string;
+    role: string;
+    personnel_number?: string;
+    assigned_vehicle_id?: string | null;
+    is_active?: boolean;
+  }) {
+    return request<UserAccount>('/auth/users/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateUser(
+    id: string,
+    payload: Partial<{
+      email: string;
+      full_name: string;
+      password: string;
+      role: string;
+      personnel_number: string;
+      assigned_vehicle_id: string | null;
+      is_active: boolean;
+    }>,
+  ) {
+    return request<UserAccount>(`/auth/users/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
   },
 
   getVehicleSummary() {
