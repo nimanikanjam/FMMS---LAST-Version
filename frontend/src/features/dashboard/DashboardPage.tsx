@@ -242,32 +242,38 @@ export function DashboardPage() {
                                     direction={{xs: 'column', md: 'row'}}
                                     spacing={1.5}
                                     alignItems={{xs: 'flex-start', md: 'center'}}
-                                    justifyContent="space-between"
                                 >
-                                    <Box
-                                        sx={{
-                                            width: 48,
-                                            height: 48,
-                                            borderRadius: (t) => t.radius('lg'),
-                                            bgcolor: 'secondary.light',
-                                            color: 'secondary.dark',
-                                            display: 'grid',
-                                            placeItems: 'center',
-                                            flexShrink: 0,
-                                        }}
+                                    <Stack
+                                        direction="row"
+                                        spacing={1.5}
+                                        alignItems="center"
+                                        sx={{minWidth: 0, flex: 1}}
                                     >
-                                        <Sync fontSize="medium"/>
-                                    </Box>
-                                    <Box minWidth={0} flex={1}>
-                                        <Typography fontWeight={800}>همگام‌سازی و تراکنش‌های SAP</Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            خودرو: {formatDateTime(vehicleSummary?.last_sap_sync_at)} · راننده:{' '}
-                                            {formatDateTime(driverSummary?.last_sap_sync_at)}
-                                            {sapSummary
-                                                ? ` · کل تراکنش‌ها: ${toFaNumber(sapSummary.total)} · ناموفق: ${toFaNumber(sapSummary.failed + sapSummary.exhausted)}`
-                                                : ''}
-                                        </Typography>
-                                    </Box>
+                                        <Box
+                                            sx={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: (t) => t.radius('lg'),
+                                                bgcolor: 'secondary.light',
+                                                color: 'secondary.dark',
+                                                display: 'grid',
+                                                placeItems: 'center',
+                                                flexShrink: 0,
+                                            }}
+                                        >
+                                            <Sync fontSize="medium"/>
+                                        </Box>
+                                        <Box minWidth={0} flex={1}>
+                                            <Typography fontWeight={800}>همگام‌سازی و تراکنش‌های SAP</Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                خودرو: {formatDateTime(vehicleSummary?.last_sap_sync_at)} · راننده:{' '}
+                                                {formatDateTime(driverSummary?.last_sap_sync_at)}
+                                                {sapSummary
+                                                    ? ` · کل تراکنش‌ها: ${toFaNumber(sapSummary.total)} · ناموفق: ${toFaNumber(sapSummary.failed + sapSummary.exhausted)}`
+                                                    : ''}
+                                            </Typography>
+                                        </Box>
+                                    </Stack>
                                     <ChevronLeft sx={{color: 'text.secondary', display: {xs: 'none', md: 'block'}}}/>
                                 </Stack>
                             </CardContent>
@@ -291,9 +297,9 @@ function SectionTitle({title}: { title: string }) {
                 gap: 1,
                 '&::before': {
                     content: '""',
-                    width: 4,
-                    height: 18,
-                    borderRadius: 99,
+                    width: 9,
+                    height: 9,
+                    borderRadius: '50%',
                     bgcolor: 'secondary.main',
                     flexShrink: 0,
                     boxShadow: (t) =>
