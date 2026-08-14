@@ -25,6 +25,7 @@ import { ClearFiltersButton } from '../../components/ClearFiltersButton';
 import { DetailLine } from '../../components/DetailLine';
 import { FeaturePage, KpiGrid } from '../../components/FeaturePage';
 import { FilterPanel } from '../../components/FilterPanel';
+import { JalaliDateTimeField } from '../../components/JalaliDateTimeField';
 import { KpiCard } from '../../components/KpiCard';
 import {
   EMPTY_MATERIAL_PICK,
@@ -654,13 +655,11 @@ export function CentralWorkshopPage() {
                     value={decisionNote}
                     onChange={(event) => setDecisionNote(event.target.value)}
                   />
-                  <RtlTextField
+                  <JalaliDateTimeField
                     fullWidth
-                    type="datetime-local"
                     label="تاریخ تحویل تخمینی"
                     value={estimatedDeliveryAt}
-                    onChange={(event) => setEstimatedDeliveryAt(event.target.value)}
-                    InputLabelProps={{ shrink: true }}
+                    onChange={setEstimatedDeliveryAt}
                   />
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap>
                     <Button
