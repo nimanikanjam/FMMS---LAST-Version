@@ -14,6 +14,13 @@ const DRIVER_MODULE_KEYS = new Set([
   'driverExternalWorkshop',
 ]);
 
+/**
+ * Modules limited to ADMIN + DRIVER only — no other role, not even VIEWER's
+ * usual "see everything" bypass. Both are driver-identity data-entry flows
+ * (daily inspection, ad-hoc fault report), not something to browse read-only.
+ */
+const DRIVER_AND_ADMIN_ONLY_MODULE_KEYS = new Set(['inspections', 'manualFault']);
+
 /** Workshop (تعمیرات) unit: central workshop technical-decision inbox. */
 const WORKSHOP_MODULE_KEYS = new Set(['dashboard', 'workshop']);
 
@@ -96,10 +103,14 @@ export function moduleKeyForPath(pathname: string): string | null {
 /**
  * ADMIN (مدیر کل) and VIEWER (ناظر کل) always see every section — ADMIN
  * with full edit rights, VIEWER read-only (enforced server-side by the
- * API's role permissions, since write actions still hit the backend).
+ * API's role permissions, since write actions still hit the backend) —
+ * except the ADMIN/DRIVER-only modules above, which VIEWER never gets.
  */
 export function canAccessModule(user: AuthUser | null | undefined, moduleKey: string): boolean {
   if (!user) return false;
+  if (DRIVER_AND_ADMIN_ONLY_MODULE_KEYS.has(moduleKey)) {
+    return Boolean(user.is_superuser || user.role === 'ADMIN' || user.role === 'DRIVER');
+  }
   if (user.is_superuser || user.role === 'ADMIN' || user.role === 'VIEWER') {
     return true;
   }

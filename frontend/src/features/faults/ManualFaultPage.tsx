@@ -19,10 +19,10 @@ import {
   ExpandMore,
   Search,
 } from '@mui/icons-material';
-import { ReportProblem } from '../../components/icons3d/Icons3D';
+import { DirectionsCar, ReportProblem } from '../../components/icons3d/Icons3D';
 import { Link as RouterLink } from 'react-router-dom';
 import { api } from '../../api/client';
-import { useCanEdit } from '../../app/CurrentUserContext';
+import { useCanEdit, useCurrentUser } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
@@ -74,6 +74,13 @@ function maxSeverity(values: FailureSeverity[]): FailureSeverity {
   );
 }
 
+function vehicleAssignedToDriver(vehicle: Vehicle, customerNumber: string): boolean {
+  return (
+    vehicle.driver1?.customer_number === customerNumber ||
+    vehicle.driver2?.customer_number === customerNumber
+  );
+}
+
 function parentFaultCode(items: FaultCatalog[]): string {
   if (items.length === 1) {
     const cleaned = items[0].code
@@ -91,6 +98,8 @@ function parentFaultCode(items: FaultCatalog[]): string {
  */
 export function ManualFaultPage() {
   const canEdit = useCanEdit();
+  const { user, loading: userLoading } = useCurrentUser();
+  const isDriver = user?.role === 'DRIVER';
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [catalogs, setCatalogs] = useState<FaultCatalog[]>([]);
   const [vehicleId, setVehicleId] = useState('');
@@ -107,18 +116,63 @@ export function ManualFaultPage() {
   const [completedFault, setCompletedFault] = useState<Fault | null>(null);
 
   useEffect(() => {
+    if (userLoading) return;
     let cancelled = false;
     const boot = async () => {
       setBootLoading(true);
       setBootError('');
       try {
-        const [vehiclePage, catalogPage] = await Promise.all([
-          api.listVehicles('', 'license_plate', { page: 1, pageSize: VEHICLE_PAGE_SIZE }),
-          api.listFaultCatalogs({ page: 1, pageSize: CATALOG_PAGE_SIZE }),
-        ]);
+        const catalogPage = await api.listFaultCatalogs({ page: 1, pageSize: CATALOG_PAGE_SIZE });
+        if (cancelled) return;
+        setCatalogs(normalizePaginated(catalogPage).filter((item) => item.is_active));
+
+        if (isDriver) {
+          if (user?.assigned_vehicle_id) {
+            const vehicle = await api.getVehicle(user.assigned_vehicle_id);
+            if (cancelled) return;
+            setVehicles([vehicle]);
+            setVehicleId(vehicle.id);
+            return;
+          }
+          const customerNumber = user?.linked_driver?.customer_number || '';
+          if (!customerNumber) {
+            setBootError(
+              'حساب کاربری شما به کد پرسنلی SAP یا راننده فعال متصل نیست. با مدیر سیستم هماهنگ کنید.',
+            );
+            return;
+          }
+          let page = 1;
+          let loaded: Vehicle[] = [];
+          let total = Infinity;
+          while (loaded.length < total) {
+            const result = await api.listVehicles('', 'license_plate', {
+              page,
+              pageSize: VEHICLE_PAGE_SIZE,
+            });
+            if (cancelled) return;
+            loaded = [...loaded, ...result.results];
+            total = result.count;
+            page += 1;
+            if (result.results.length === 0) break;
+          }
+          const assigned = loaded.filter(
+            (item) => item.status === 'ACTIVE' && vehicleAssignedToDriver(item, customerNumber),
+          );
+          setVehicles(assigned);
+          if (assigned.length === 1) {
+            setVehicleId(assigned[0].id);
+          } else if (assigned.length === 0) {
+            setBootError('خودروی عملیاتی اساین‌شده به شما یافت نشد.');
+          }
+          return;
+        }
+
+        const vehiclePage = await api.listVehicles('', 'license_plate', {
+          page: 1,
+          pageSize: VEHICLE_PAGE_SIZE,
+        });
         if (cancelled) return;
         setVehicles(vehiclePage.results);
-        setCatalogs(normalizePaginated(catalogPage).filter((item) => item.is_active));
       } catch (err) {
         if (!cancelled) {
           setBootError(err instanceof Error ? err.message : 'آماده‌سازی فرم ثبت خرابی انجام نشد');
@@ -131,7 +185,7 @@ export function ManualFaultPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [userLoading, isDriver, user]);
 
   const selectedVehicle = useMemo(
     () => vehicles.find((item) => item.id === vehicleId) ?? null,
@@ -459,28 +513,74 @@ export function ManualFaultPage() {
                 <Stack spacing={2}>
                   <Box>
                     <Typography fontWeight={800} mb={1.25}>
-                      انتخاب خودرو
+                      {isDriver ? 'خودرو' : 'انتخاب خودرو'}
                     </Typography>
-                    <RtlSelectField
-                      label="خودرو"
-                      value={vehicleId}
-                      displayEmpty
-                      onChange={(event) => {
-                        setVehicleId(String(event.target.value));
-                        setSelectedIds([]);
-                        setDescription('');
-                        setSubmitError('');
-                      }}
-                    >
-                      <MenuItem value="">
-                        <em>انتخاب خودرو</em>
-                      </MenuItem>
-                      {vehicles.map((item) => (
-                        <MenuItem key={item.id} value={item.id}>
-                          {item.license_plate} — {item.vehicle_number}
+                    {isDriver ? (
+                      selectedVehicle ? (
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          gap={1.25}
+                          sx={{
+                            p: 1.25,
+                            borderRadius: (t) => t.radius('sm'),
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            bgcolor: 'background.paper',
+                          }}
+                        >
+                          <DirectionsCar sx={{ color: 'secondary.main' }} />
+                          <Box minWidth={0}>
+                            <Typography fontWeight={800}>{selectedVehicle.license_plate}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {selectedVehicle.vehicle_number}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      ) : vehicles.length > 1 ? (
+                        <RtlSelectField
+                          label="خودرو"
+                          value={vehicleId}
+                          displayEmpty
+                          onChange={(event) => {
+                            setVehicleId(String(event.target.value));
+                            setSelectedIds([]);
+                            setDescription('');
+                            setSubmitError('');
+                          }}
+                        >
+                          <MenuItem value="">
+                            <em>انتخاب خودرو</em>
+                          </MenuItem>
+                          {vehicles.map((item) => (
+                            <MenuItem key={item.id} value={item.id}>
+                              {item.license_plate} — {item.vehicle_number}
+                            </MenuItem>
+                          ))}
+                        </RtlSelectField>
+                      ) : null
+                    ) : (
+                      <RtlSelectField
+                        label="خودرو"
+                        value={vehicleId}
+                        displayEmpty
+                        onChange={(event) => {
+                          setVehicleId(String(event.target.value));
+                          setSelectedIds([]);
+                          setDescription('');
+                          setSubmitError('');
+                        }}
+                      >
+                        <MenuItem value="">
+                          <em>انتخاب خودرو</em>
                         </MenuItem>
-                      ))}
-                    </RtlSelectField>
+                        {vehicles.map((item) => (
+                          <MenuItem key={item.id} value={item.id}>
+                            {item.license_plate} — {item.vehicle_number}
+                          </MenuItem>
+                        ))}
+                      </RtlSelectField>
+                    )}
                   </Box>
 
                   {vehicleId && (
