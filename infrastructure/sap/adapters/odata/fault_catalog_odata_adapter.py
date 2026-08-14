@@ -13,12 +13,15 @@ from infrastructure.sap.client.base import ISAPClient, SAPClientError
 
 logger = logging.getLogger(__name__)
 
-_SERVICE = "ZI_B_DEFECTCATALOG9_CDS"
+# Same CDS view manual fault reporting shares with the daily-inspection
+# object-part catalog (see ObjectPartCatalogODataAdapter). It carries no
+# DefectClass/DefectClassText columns, so those DTO fields come back empty.
+_SERVICE = "ZI_FLEET_CAT_B_CDS"
 _DEFAULT_ENTITY_SET = ""
 
 
 class FaultCatalogODataAdapter(ISAPFaultCatalogPort):
-    """Reads SAP defect catalog rows via OData XML.
+    """Reads SAP fault/defect catalog rows via OData XML.
 
     Args:
         client: An ``ISAPClient`` instance.

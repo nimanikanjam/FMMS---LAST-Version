@@ -71,7 +71,7 @@ Application Service
 |---|---|---|---|
 | خودرو و راننده | `VehicleDriverODataAdapter` | `ZC_VEHICLEDRIVER_CDS` | Vehicle، Driver و assignment history |
 | آیتم بازرسی | `ObjectPartCatalogODataAdapter` | `ZI_FLEET_CAT_B_CDS` | InspectionTemplate |
-| کاتالوگ خرابی | `FaultCatalogODataAdapter` | `ZI_B_DEFECTCATALOG9_CDS` | FaultCatalog |
+| کاتالوگ خرابی | `FaultCatalogODataAdapter` | `ZI_FLEET_CAT_B_CDS` (همان Service آیتم بازرسی) | FaultCatalog |
 | موجودی مرکزی | `CentralStockODataAdapter` | `ZI_STOCK_KH08_CDS` | CentralStock |
 
 جریان خواندن:

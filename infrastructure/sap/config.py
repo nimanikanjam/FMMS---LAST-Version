@@ -29,7 +29,8 @@ Optional environment variables:
     SAP_OBJECT_PART_CATALOG_ENTITY_SET — Object-part catalog entity set
         (default: empty)
     SAP_FAULT_CATALOG_SERVICE    — Fault catalog OData service
-        (default: ZI_B_DEFECTCATALOG9_CDS)
+        (default: ZI_FLEET_CAT_B_CDS — same view as the object-part/
+        daily-inspection catalog)
     SAP_FAULT_CATALOG_ENTITY_SET — Fault catalog entity set (default: empty)
     SAP_CENTRAL_STOCK_SERVICE    — Central warehouse stock OData service
         (default: ZI_STOCK_KH08_CDS)
@@ -127,8 +128,12 @@ class SAPConfig:
             "",
         )
         fault_catalog_service = os.environ.get(
+            # Same CDS view as the object-part (daily inspection) catalog —
+            # manual fault reporting reuses that data source instead of the
+            # separate defect catalog, so defect_class/defect_class_text
+            # come back empty (severity falls back to LOW client-side).
             "SAP_FAULT_CATALOG_SERVICE",
-            "ZI_B_DEFECTCATALOG9_CDS",
+            "ZI_FLEET_CAT_B_CDS",
         )
         fault_catalog_entity_set = os.environ.get(
             "SAP_FAULT_CATALOG_ENTITY_SET",
