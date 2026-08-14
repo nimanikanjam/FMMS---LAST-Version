@@ -11,15 +11,9 @@ import {
 } from '@mui/material';
 import { Close, EmailOutlined, PersonOutline, ShieldOutlined, BadgeOutlined } from '@mui/icons-material';
 import { api } from '../../api/client';
+import { roleLabel } from '../../app/roles';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
 import type { AuthUser } from '../../types/fmms';
-
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: 'مدیر',
-  SUPERVISOR: 'ناظر',
-  TECHNICIAN: 'تکنسین',
-  VIEWER: 'مشاهده‌گر',
-};
 
 function profileInitials(user: AuthUser): string {
   const source = user.full_name.trim() || user.username.trim();
@@ -112,7 +106,7 @@ export function ProfileModal({ open, onClose, initialUser = null }: ProfileModal
   }, [open]);
 
   const displayName = user?.full_name.trim() || user?.username || 'کاربر';
-  const roleText = user ? ROLE_LABELS[user.role] ?? user.role : '';
+  const roleText = user ? roleLabel(user.role) : '';
 
   return (
     <Dialog

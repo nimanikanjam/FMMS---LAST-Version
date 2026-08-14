@@ -75,7 +75,7 @@ class TestAuthTokenAPI:
 
     def test_current_user_profile(self, api_client: APIClient) -> None:
         """Return the authenticated user's profile."""
-        user = FMMSUserFactory(role="SUPERVISOR", password="testpass123!")
+        user = FMMSUserFactory(role="WORKSHOP_SUPERVISOR", password="testpass123!")
         obtain = api_client.post(
             "/api/v1/auth/token/",
             {"username": user.username, "password": "testpass123!"},
@@ -85,7 +85,7 @@ class TestAuthTokenAPI:
         response = api_client.get("/api/v1/auth/me/")
         assert response.status_code == 200
         assert response.data["username"] == user.username
-        assert response.data["role"] == "SUPERVISOR"
+        assert response.data["role"] == "WORKSHOP_SUPERVISOR"
 
     def test_auth_token_views_have_scoped_throttling(self) -> None:
         """Token endpoints use dedicated throttle scopes."""

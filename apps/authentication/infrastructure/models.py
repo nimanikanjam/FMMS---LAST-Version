@@ -21,17 +21,20 @@ class FMMSUserRole(models.TextChoices):
 
     Controls what operations a user is permitted to perform.
     Role-based permission checks are enforced at the API layer.
+
+    Six roles, one per operational unit plus two system-wide roles:
+    DRIVER only sees the driver section (not the driver list), the three
+    unit-supervisor roles (TRANSPORT/DISTRIBUTION/WORKSHOP_SUPERVISOR) are
+    scoped to their own tab, ADMIN has full edit access everywhere, and
+    VIEWER has read-only access everywhere.
     """
 
-    ADMIN = "ADMIN", "Administrator"
-    SUPERVISOR = "SUPERVISOR", "Supervisor"
-    DISTRIBUTION = "DISTRIBUTION", "Distribution Supervisor"
-    TRANSPORT = "TRANSPORT", "Transport Supervisor"
-    WAREHOUSE = "WAREHOUSE", "Warehouse Supervisor"
-    WORKSHOP_SUPERVISOR = "WORKSHOP_SUPERVISOR", "Central Workshop Supervisor"
-    TECHNICIAN = "TECHNICIAN", "Technician"
-    DRIVER = "DRIVER", "Driver"
-    VIEWER = "VIEWER", "Viewer (read-only)"
+    DRIVER = "DRIVER", "راننده"
+    TRANSPORT = "TRANSPORT", "مسئول ترابری"
+    DISTRIBUTION = "DISTRIBUTION", "مسئول توزیع"
+    WORKSHOP_SUPERVISOR = "WORKSHOP_SUPERVISOR", "مسئول تعمیرات"
+    ADMIN = "ADMIN", "مدیر کل"
+    VIEWER = "VIEWER", "ناظر کل"
 
 
 class FMMSUser(AbstractBaseUser, PermissionsMixin):
@@ -133,11 +136,20 @@ class FMMSUser(AbstractBaseUser, PermissionsMixin):
         return self.role == FMMSUserRole.ADMIN
 
     @property
-    def is_supervisor(self) -> bool:
-        """Return True if the user has the SUPERVISOR role."""
-        return self.role == FMMSUserRole.SUPERVISOR
+    def is_viewer(self) -> bool:
+        """Return True if the user has the read-only VIEWER role."""
+        return self.role == FMMSUserRole.VIEWER
 
     @property
-    def is_technician(self) -> bool:
-        """Return True if the user has the TECHNICIAN role."""
-        return self.role == FMMSUserRole.TECHNICIAN
+    def is_driver(self) -> bool:
+        """Return True if the user has the DRIVER role."""
+        return self.role == FMMSUserRole.DRIVER
+
+    @property
+    def is_unit_supervisor(self) -> bool:
+        """Return True if the user supervises one operational unit (transport/distribution/workshop)."""
+        return self.role in (
+            FMMSUserRole.TRANSPORT,
+            FMMSUserRole.DISTRIBUTION,
+            FMMSUserRole.WORKSHOP_SUPERVISOR,
+        )

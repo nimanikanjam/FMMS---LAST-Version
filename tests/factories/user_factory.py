@@ -25,7 +25,7 @@ class FMMSUserFactory(DjangoModelFactory):
     Usage:
         user = FMMSUserFactory()
         admin = FMMSUserFactory(role="ADMIN", is_staff=True)
-        tech  = FMMSUserFactory(role="TECHNICIAN", full_name="Ali Mohammadi")
+        tech  = FMMSUserFactory(role="WORKSHOP_SUPERVISOR", full_name="Ali Mohammadi")
     """
 
     class Meta:

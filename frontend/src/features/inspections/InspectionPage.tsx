@@ -68,12 +68,7 @@ function mergeVehicles(current: Vehicle[], incoming: Vehicle[]): Vehicle[] {
 
 function isAdminUser(user: AuthUser | null): boolean {
   if (!user) return false;
-  return (
-    user.is_superuser ||
-    user.is_staff ||
-    user.role === 'ADMIN' ||
-    user.role === 'SUPERVISOR'
-  );
+  return user.is_superuser || user.is_staff || user.role === 'ADMIN';
 }
 
 function isDriverUser(user: AuthUser | null): boolean {

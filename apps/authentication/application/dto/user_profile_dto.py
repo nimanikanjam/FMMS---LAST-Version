@@ -13,7 +13,7 @@ class UserProfileSummaryDTO:
     Attributes:
         id: User UUID.
         name: Display name.
-        role: FMMS role code (e.g. ADMIN, SUPERVISOR, TECHNICIAN, VIEWER).
+        role: FMMS role code (e.g. ADMIN, WORKSHOP_SUPERVISOR, VIEWER).
     """
 
     id: uuid.UUID

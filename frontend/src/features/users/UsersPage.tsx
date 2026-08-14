@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { Add, Close } from '@mui/icons-material';
 import { api, ApiError } from '../../api/client';
+import { ROLE_LABELS, ROLE_OPTIONS } from '../../app/roles';
 import { Button } from '../../components/Button';
 import { EmptyState, ErrorState } from '../../components/States';
 import { FeaturePage } from '../../components/FeaturePage';
@@ -21,20 +22,6 @@ import { RtlDataTable, type RtlDataTableColumn } from '../../components/RtlDataT
 import { RtlSelectField } from '../../components/RtlSelectField';
 import { RtlTextField } from '../../components/RtlTextField';
 import type { UserAccount, Vehicle } from '../../types/fmms';
-
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: 'مدیر سامانه',
-  SUPERVISOR: 'ناظر',
-  DISTRIBUTION: 'ناظر توزیع',
-  TRANSPORT: 'ناظر ترابری',
-  WAREHOUSE: 'ناظر انبار',
-  WORKSHOP_SUPERVISOR: 'ناظر تعمیرگاه مرکزی',
-  TECHNICIAN: 'تعمیرکار',
-  DRIVER: 'راننده',
-  VIEWER: 'مشاهده‌گر',
-};
-
-const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }));
 
 type FormState = {
   id: string | null;

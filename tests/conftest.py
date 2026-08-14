@@ -35,10 +35,15 @@ def admin_user(db: None) -> "FMMSUser":  # type: ignore[name-defined]  # noqa: F
 
 @pytest.fixture
 def supervisor_user(db: None) -> "FMMSUser":  # type: ignore[name-defined]  # noqa: F821
-    """Return a persisted FMMSUser with SUPERVISOR role."""
+    """Return a persisted FMMSUser with the ADMIN role (non-superuser).
+
+    Used where a test needs cross-domain write access gated purely by
+    role (not the ``is_superuser`` flag), since ADMIN is the only role
+    that passes every per-domain supervisor permission check.
+    """
     from tests.factories.user_factory import FMMSUserFactory
 
-    return FMMSUserFactory(role="SUPERVISOR")
+    return FMMSUserFactory(role="ADMIN")
 
 
 @pytest.fixture
@@ -55,14 +60,6 @@ def transport_user(db: None) -> "FMMSUser":  # type: ignore[name-defined]  # noq
     from tests.factories.user_factory import FMMSUserFactory
 
     return FMMSUserFactory(role="TRANSPORT")
-
-
-@pytest.fixture
-def technician_user(db: None) -> "FMMSUser":  # type: ignore[name-defined]  # noqa: F821
-    """Return a persisted FMMSUser with TECHNICIAN role."""
-    from tests.factories.user_factory import FMMSUserFactory
-
-    return FMMSUserFactory(role="TECHNICIAN")
 
 
 @pytest.fixture
@@ -122,6 +119,26 @@ def transport_client(transport_user: "FMMSUser") -> APIClient:  # type: ignore[n
 @pytest.fixture
 def technician_client(technician_user: "FMMSUser") -> APIClient:  # type: ignore[name-defined]  # noqa: F821
     """Return an API client authenticated as a technician."""
+    client = APIClient()
+    client.force_authenticate(user=technician_user)
+    return client
+
+
+@pytest.fixture
+def technician_user(db: None) -> "FMMSUser":  # type: ignore[name-defined]  # noqa: F821
+    """Return a persisted FMMSUser with the WORKSHOP_SUPERVISOR role.
+
+    TECHNICIAN was merged into WORKSHOP_SUPERVISOR; kept as its own
+    fixture/client since it's used across many workshop-workflow tests.
+    """
+    from tests.factories.user_factory import FMMSUserFactory
+
+    return FMMSUserFactory(role="WORKSHOP_SUPERVISOR")
+
+
+@pytest.fixture
+def technician_client(technician_user: "FMMSUser") -> APIClient:  # type: ignore[name-defined]  # noqa: F821
+    """Return an API client authenticated as a workshop technician."""
     client = APIClient()
     client.force_authenticate(user=technician_user)
     return client

@@ -37,6 +37,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import { canAccessModule, navSectionsForUser } from '../app/access';
 import { isNavGroup, modules, type AppModule, type NavGroup } from '../app/modules';
+import { roleLabel } from '../app/roles';
 import { api } from '../api/client';
 import { ProfileModal } from '../features/auth/ProfileModal';
 import { ThemeModeToggle } from '../components/ThemeModeToggle';
@@ -66,17 +67,6 @@ function writeSidebarCollapsed(collapsed: boolean): void {
   } catch {
     // Ignore quota / private-mode failures; UI state still works in-session.
   }
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: 'مدیر',
-  SUPERVISOR: 'ناظر',
-  TECHNICIAN: 'تکنسین',
-  VIEWER: 'مشاهده‌گر',
-};
-
-function roleLabel(role: string): string {
-  return ROLE_LABELS[role] ?? role;
 }
 
 function profileInitials(user: AuthUser): string {

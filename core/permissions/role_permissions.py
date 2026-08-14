@@ -2,6 +2,11 @@
 
 Permissions inspect ``request.user.role`` on the custom ``FMMSUser`` model.
 They contain no business rules — only authorization gates for the API layer.
+
+FMMS has six roles: DRIVER, TRANSPORT, DISTRIBUTION, WORKSHOP_SUPERVISOR
+(one operational unit each), ADMIN (full edit access everywhere), and
+VIEWER (read-only access everywhere). Every gate below therefore allows
+VIEWER to read (SAFE methods) even where it denies VIEWER from writing.
 """
 
 from __future__ import annotations
@@ -13,10 +18,12 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 
-def _normalized_role(user: Any) -> str | None:
-    """Map legacy/demo roles to canonical FMMS authorization roles."""
-    role = getattr(user, "role", None)
-    return role
+def _role(user: Any) -> str | None:
+    return getattr(user, "role", None)
+
+
+def _is_admin(user: Any) -> bool:
+    return bool(getattr(user, "is_superuser", False) or _role(user) == "ADMIN")
 
 
 class IsFMMSAuthenticated(BasePermission):
@@ -27,75 +34,72 @@ class IsFMMSAuthenticated(BasePermission):
         return bool(request.user and request.user.is_authenticated)
 
 
-class IsAdminRole(BasePermission):
-    """Allow only users with the ADMIN role (or Django superuser)."""
+class _WriteRolesOrReadOnlyViewer(BasePermission):
+    """Base: ADMIN always allowed; extra roles may write; VIEWER may only read.
+
+    Subclasses set ``write_roles`` to the non-ADMIN roles allowed to write.
+    """
+
+    write_roles: frozenset[str] = frozenset()
 
     def has_permission(self, request: Request, view: APIView) -> bool:
-        """Return True for authenticated ADMIN users or superusers."""
+        """Gate access by role, with a read-only carve-out for VIEWER."""
         user: Any = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and (
-                getattr(user, "is_superuser", False)
-                or _normalized_role(user) == "ADMIN"
-            )
-        )
+        if not (user and user.is_authenticated):
+            return False
+        if _is_admin(user):
+            return True
+        role = _role(user)
+        if role in self.write_roles:
+            return True
+        if request.method in SAFE_METHODS:
+            return role == "VIEWER"
+        return False
 
 
-class IsSupervisorOrAbove(BasePermission):
-    """Allow ADMIN or SUPERVISOR roles."""
-
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        """Return True for ADMIN or SUPERVISOR users."""
-        user: Any = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and _normalized_role(user)
-            in {
-                "ADMIN",
-                "SUPERVISOR",
-                "DISTRIBUTION",
-                "TRANSPORT",
-                "WAREHOUSE",
-                "WORKSHOP_SUPERVISOR",
-            }
-        )
+class IsAdminRole(_WriteRolesOrReadOnlyViewer):
+    """Allow ADMIN (or superuser) to write; VIEWER may only read."""
 
 
-class IsTechnicianOrAbove(BasePermission):
-    """Allow ADMIN, SUPERVISOR, workshop supervisor, or TECHNICIAN roles."""
+class IsSupervisorOrAbove(_WriteRolesOrReadOnlyViewer):
+    """Allow any operational-unit supervisor (or ADMIN) to write; VIEWER may only read."""
 
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        """Return True for operational roles including technicians."""
-        user: Any = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and _normalized_role(user)
-            in {"ADMIN", "SUPERVISOR", "WORKSHOP_SUPERVISOR", "TECHNICIAN"}
-        )
+    write_roles = frozenset({"TRANSPORT", "DISTRIBUTION", "WORKSHOP_SUPERVISOR"})
 
 
-class IsWorkshopSupervisorOrAbove(BasePermission):
-    """Allow central workshop supervisors, generic supervisors, or admins."""
+class IsWorkshopSupervisorOrAbove(_WriteRolesOrReadOnlyViewer):
+    """Allow the workshop (repairs) supervisor or ADMIN to write; VIEWER may only read."""
 
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        """Return True for users allowed to make workshop technical decisions."""
-        user: Any = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and _normalized_role(user)
-            in {"ADMIN", "SUPERVISOR", "WORKSHOP_SUPERVISOR"}
-        )
+    write_roles = frozenset({"WORKSHOP_SUPERVISOR"})
+
+
+class IsDistributionSupervisorOrAbove(_WriteRolesOrReadOnlyViewer):
+    """Allow the distribution supervisor or ADMIN to write; VIEWER may only read."""
+
+    write_roles = frozenset({"DISTRIBUTION"})
+
+
+class IsTransportSupervisorOrAbove(_WriteRolesOrReadOnlyViewer):
+    """Allow the transport supervisor or ADMIN to write; VIEWER may only read."""
+
+    write_roles = frozenset({"TRANSPORT"})
+
+
+class IsDriverOrTechnicianOrAbove(_WriteRolesOrReadOnlyViewer):
+    """Allow DRIVER, the workshop supervisor, or ADMIN to write; VIEWER may only read.
+
+    Used for driver-facing confirmation actions (vehicle handover, repair
+    driver confirmation).
+    """
+
+    write_roles = frozenset({"DRIVER", "WORKSHOP_SUPERVISOR"})
 
 
 class IsReadOnlyOrTechnicianOrAbove(BasePermission):
-    """Allow any authenticated user for SAFE methods; writers need TECHNICIAN+.
+    """Allow any authenticated user for SAFE methods; writes need WORKSHOP_SUPERVISOR+.
 
-    VIEWER may read. Mutating methods require TECHNICIAN, SUPERVISOR, or ADMIN.
+    VIEWER (and every other role) may read. Mutating methods require
+    WORKSHOP_SUPERVISOR or ADMIN.
     """
 
     def has_permission(self, request: Request, view: APIView) -> bool:
@@ -105,16 +109,11 @@ class IsReadOnlyOrTechnicianOrAbove(BasePermission):
             return False
         if request.method in SAFE_METHODS:
             return True
-        return _normalized_role(user) in {
-            "ADMIN",
-            "SUPERVISOR",
-            "WORKSHOP_SUPERVISOR",
-            "TECHNICIAN",
-        }
+        return _is_admin(user) or _role(user) == "WORKSHOP_SUPERVISOR"
 
 
 class IsReadOnlyOrDriverOrTechnicianOrAbove(BasePermission):
-    """SAFE methods for any auth user; writes for DRIVER or TECHNICIAN+.
+    """SAFE methods for any auth user; writes for DRIVER or WORKSHOP_SUPERVISOR+.
 
     Used for driver daily checklist / odometer / exit-center workflows.
     """
@@ -126,56 +125,4 @@ class IsReadOnlyOrDriverOrTechnicianOrAbove(BasePermission):
             return False
         if request.method in SAFE_METHODS:
             return True
-        return _normalized_role(user) in {
-            "ADMIN",
-            "SUPERVISOR",
-            "WORKSHOP_SUPERVISOR",
-            "TECHNICIAN",
-            "DRIVER",
-        }
-
-
-class IsDriverOrTechnicianOrAbove(BasePermission):
-    """Allow drivers and operational roles to confirm vehicle handovers."""
-
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        """Return True for DRIVER and TECHNICIAN+ roles."""
-        user: Any = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and _normalized_role(user)
-            in {
-                "ADMIN",
-                "SUPERVISOR",
-                "WORKSHOP_SUPERVISOR",
-                "TECHNICIAN",
-                "DRIVER",
-            }
-        )
-
-
-class IsDistributionSupervisorOrAbove(BasePermission):
-    """Allow distribution supervisors, generic supervisors, or admins."""
-
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        """Return True for users allowed to make distribution decisions."""
-        user: Any = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and _normalized_role(user) in {"ADMIN", "SUPERVISOR", "DISTRIBUTION"}
-        )
-
-
-class IsTransportSupervisorOrAbove(BasePermission):
-    """Allow transport/supervisor/admin roles for workflow approvals."""
-
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        """Return True for users mapped to supervisor privileges."""
-        user: Any = request.user
-        return bool(
-            user
-            and user.is_authenticated
-            and _normalized_role(user) in {"ADMIN", "SUPERVISOR", "TRANSPORT"}
-        )
+        return _is_admin(user) or _role(user) in {"WORKSHOP_SUPERVISOR", "DRIVER"}

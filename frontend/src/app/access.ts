@@ -1,48 +1,43 @@
 import type { AuthUser } from '../types/fmms';
 import { isNavGroup, navSections, type NavEntry, type NavGroup } from './modules';
 
-/** Module keys a DRIVER role may access in the shell navigation. */
+/**
+ * Module keys a DRIVER role may access: the full "راننده" nav group,
+ * except the "لیست راننده‌ها" (all-drivers) list.
+ */
 const DRIVER_MODULE_KEYS = new Set([
   'dashboard',
   'myVehicleStatus',
   'inspections',
+  'manualFault',
   'handover',
   'driverExternalWorkshop',
 ]);
 
-/** Central workshop supervisor / technician inbox. */
+/** Workshop (تعمیرات) unit: central workshop technical-decision inbox. */
 const WORKSHOP_MODULE_KEYS = new Set(['dashboard', 'workshop']);
 
-/** Distribution unit: fault disposition queue. */
-const DISTRIBUTION_MODULE_KEYS = new Set([
-  'dashboard',
-  'faults',
-  'vehicles',
-  'checklists',
-]);
+/** Distribution (توزیع) unit: fault disposition queue. */
+const DISTRIBUTION_MODULE_KEYS = new Set(['dashboard', 'faults']);
 
-/** Transport unit: repair queue + parts decisions. */
+/** Transport (ترابری) unit: repair queue, parts decisions, external workshop. */
 const TRANSPORT_MODULE_KEYS = new Set([
   'dashboard',
   'repairs',
   'transportParts',
   'transportExternalWorkshop',
-  'vehicles',
-  'drivers',
 ]);
 
 /**
  * Role → allowed module keys.
- * `null` / missing role = unrestricted (legacy/open until mapped).
+ * `null` / missing role = unrestricted (ADMIN/VIEWER are handled directly
+ * in `canAccessModule`, since they always see every section).
  */
 const ROLE_MODULE_KEYS: Record<string, Set<string> | null> = {
   DRIVER: DRIVER_MODULE_KEYS,
   WORKSHOP_SUPERVISOR: WORKSHOP_MODULE_KEYS,
-  TECHNICIAN: WORKSHOP_MODULE_KEYS,
   DISTRIBUTION: DISTRIBUTION_MODULE_KEYS,
   TRANSPORT: TRANSPORT_MODULE_KEYS,
-  WAREHOUSE: new Set(['dashboard', 'transportParts', 'materials']),
-  VIEWER: new Set(['dashboard', 'vehicles', 'checklists', 'drivers', 'faults', 'sap']),
 };
 
 /** Map app paths to module keys for route guards. */
@@ -73,9 +68,7 @@ export function isDriverRole(user: AuthUser | null | undefined): boolean {
 }
 
 export function isWorkshopRole(user: AuthUser | null | undefined): boolean {
-  return Boolean(
-    user && (user.role === 'WORKSHOP_SUPERVISOR' || user.role === 'TECHNICIAN'),
-  );
+  return Boolean(user && user.role === 'WORKSHOP_SUPERVISOR');
 }
 
 export function isDistributionRole(user: AuthUser | null | undefined): boolean {
@@ -100,9 +93,14 @@ export function moduleKeyForPath(pathname: string): string | null {
   return null;
 }
 
+/**
+ * ADMIN (مدیر کل) and VIEWER (ناظر کل) always see every section — ADMIN
+ * with full edit rights, VIEWER read-only (enforced server-side by the
+ * API's role permissions, since write actions still hit the backend).
+ */
 export function canAccessModule(user: AuthUser | null | undefined, moduleKey: string): boolean {
   if (!user) return false;
-  if (user.is_superuser || user.role === 'ADMIN' || user.role === 'SUPERVISOR') {
+  if (user.is_superuser || user.role === 'ADMIN' || user.role === 'VIEWER') {
     return true;
   }
   const allowed = ROLE_MODULE_KEYS[user.role];

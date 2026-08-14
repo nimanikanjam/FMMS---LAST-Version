@@ -8,7 +8,6 @@ from core.permissions.role_permissions import (
     IsReadOnlyOrDriverOrTechnicianOrAbove,
     IsReadOnlyOrTechnicianOrAbove,
     IsSupervisorOrAbove,
-    IsTechnicianOrAbove,
     IsTransportSupervisorOrAbove,
     IsWorkshopSupervisorOrAbove,
 )
@@ -21,7 +20,6 @@ __all__ = [
     "IsReadOnlyOrDriverOrTechnicianOrAbove",
     "IsReadOnlyOrTechnicianOrAbove",
     "IsSupervisorOrAbove",
-    "IsTechnicianOrAbove",
     "IsTransportSupervisorOrAbove",
     "IsWorkshopSupervisorOrAbove",
 ]

@@ -192,12 +192,9 @@ class TestFMMSUserModel:
         roles = {choice[0] for choice in FMMSUserRole.choices}
         assert roles == {
             "ADMIN",
-            "SUPERVISOR",
             "DISTRIBUTION",
             "TRANSPORT",
-            "WAREHOUSE",
             "WORKSHOP_SUPERVISOR",
-            "TECHNICIAN",
             "DRIVER",
             "VIEWER",
         }

@@ -47,7 +47,7 @@ class TestUnauthenticatedAccess:
 
 
 class TestViewerPermissions:
-    """VIEWER may read; mutating methods require TECHNICIAN+."""
+    """VIEWER may read; mutating methods require WORKSHOP_SUPERVISOR+."""
 
     def test_viewer_can_list_vehicles(self, viewer_client: APIClient) -> None:
         """Authenticated viewers may perform SAFE reads."""
@@ -115,7 +115,7 @@ class TestTechnicianVsSupervisorActions:
     def test_technician_cannot_change_vehicle_status(
         self, authenticated_client: APIClient, technician_client: APIClient
     ) -> None:
-        """Vehicle status changes require SUPERVISOR or ADMIN."""
+        """Vehicle status changes require an operational-unit supervisor or ADMIN."""
         vehicle = create_vehicle(
             authenticated_client, plate="12TECH02", vin="1HGCM82633A004396"
         )
@@ -129,7 +129,7 @@ class TestTechnicianVsSupervisorActions:
     def test_supervisor_can_change_vehicle_status(
         self, authenticated_client: APIClient, supervisor_client: APIClient
     ) -> None:
-        """SUPERVISOR may change vehicle status."""
+        """ADMIN-role users may change vehicle status."""
         vehicle = create_vehicle(
             authenticated_client, plate="12SUP001", vin="1HGCM82633A004395"
         )
