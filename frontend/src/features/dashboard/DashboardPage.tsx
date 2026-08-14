@@ -152,7 +152,7 @@ export function DashboardPage() {
                 breadcrumbs={[{label: 'داشبورد'}]}
                 accentColor="secondary.main"
                 accentSide="right"
-                backgroundImage={`/dashboard-card-distribution.png`}
+                backgroundImage={`/dashboard.png`}
                 backgroundSize="300px auto"
                 backgroundPosition="left center"
             />
