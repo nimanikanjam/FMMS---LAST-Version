@@ -283,6 +283,11 @@ export function createAppTheme(mode: ColorMode): Theme {
                     background: 'linear-gradient(135deg, #2EAD74 0%, #1E8A5A 100%)',
                     boxShadow: '0 10px 22px rgba(46, 173, 116, 0.36)',
                   },
+                  '&.Mui-disabled': {
+                    background: 'rgba(46, 173, 116, 0.14)',
+                    color: 'rgba(61, 207, 142, 0.55)',
+                    boxShadow: 'none',
+                  },
                 }
               : {
                   background: 'linear-gradient(135deg, #12865D 0%, #0F6B4C 55%, #0A4D37 100%)',
@@ -290,6 +295,11 @@ export function createAppTheme(mode: ColorMode): Theme {
                   '&:hover': {
                     background: 'linear-gradient(135deg, #0F6B4C 0%, #0A4D37 100%)',
                     boxShadow: '0 10px 22px rgba(15, 107, 76, 0.32)',
+                  },
+                  '&.Mui-disabled': {
+                    background: 'rgba(15, 107, 76, 0.12)',
+                    color: 'rgba(15, 107, 76, 0.55)',
+                    boxShadow: 'none',
                   },
                 },
           containedSecondary: ({ theme: t }) =>
@@ -302,6 +312,11 @@ export function createAppTheme(mode: ColorMode): Theme {
                     background: 'linear-gradient(135deg, #E88978 0%, #C4573D 100%)',
                     boxShadow: '0 10px 22px rgba(224, 122, 106, 0.36)',
                   },
+                  '&.Mui-disabled': {
+                    background: 'rgba(224, 122, 106, 0.14)',
+                    color: 'rgba(240, 160, 144, 0.55)',
+                    boxShadow: 'none',
+                  },
                 }
               : {
                   background: 'linear-gradient(135deg, #D46B55 0%, #C4573D 55%, #8E3428 100%)',
@@ -309,6 +324,11 @@ export function createAppTheme(mode: ColorMode): Theme {
                   '&:hover': {
                     background: 'linear-gradient(135deg, #C4573D 0%, #8E3428 100%)',
                     boxShadow: '0 10px 22px rgba(196, 92, 74, 0.32)',
+                  },
+                  '&.Mui-disabled': {
+                    background: 'rgba(196, 92, 74, 0.12)',
+                    color: 'rgba(196, 92, 74, 0.55)',
+                    boxShadow: 'none',
                   },
                 },
           outlinedPrimary: ({ theme: t }) => ({
