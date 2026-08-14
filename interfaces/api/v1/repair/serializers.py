@@ -45,6 +45,19 @@ class WorkshopTechnicalDecisionSerializer(serializers.Serializer):
     note = serializers.CharField(
         max_length=500, required=False, allow_blank=True, trim_whitespace=True
     )
+    estimated_delivery_at = serializers.DateTimeField(required=False, allow_null=True)
+
+    def validate(self, attrs: dict) -> dict:
+        """Require estimated delivery date when confirming repair is needed."""
+        if attrs.get("repairable") and not attrs.get("estimated_delivery_at"):
+            raise serializers.ValidationError(
+                {
+                    "estimated_delivery_at": (
+                        "estimated_delivery_at is required when repairable=True."
+                    )
+                }
+            )
+        return attrs
 
 
 class RepairAssignWorkshopSerializer(serializers.Serializer):
@@ -312,6 +325,7 @@ class RepairOrderResponseSerializer(serializers.Serializer):
     transport_approval_note = serializers.CharField(allow_null=True, required=False)
     workshop_decision_note = serializers.CharField(allow_null=True, required=False)
     completed_at = serializers.DateTimeField(allow_null=True)
+    estimated_delivery_at = serializers.DateTimeField(allow_null=True, required=False)
 
 
 class RepairDecisionResponseSerializer(serializers.Serializer):
@@ -330,6 +344,7 @@ class RepairDecisionResponseSerializer(serializers.Serializer):
         allow_null=True, required=False
     )
     transport_rejection_reason = serializers.CharField(allow_null=True, required=False)
+    estimated_delivery_at = serializers.DateTimeField(allow_null=True, required=False)
 
 
 class ExternalWorkshopReferralResponseSerializer(serializers.Serializer):

@@ -504,7 +504,7 @@ export const api = {
 
   workshopTechnicalDecision(
     id: string,
-    payload: { repairable: boolean; note?: string },
+    payload: { repairable: boolean; note?: string; estimated_delivery_at?: string },
   ) {
     return request<{ id: string; status: string; message: string }>(
       `/repair-orders/${id}/technical-decision/`,

@@ -254,13 +254,19 @@ class ApproveRepairOrderDTO:
 
 @dataclass(frozen=True)
 class WorkshopTechnicalDecisionDTO:
-    """Input DTO for central-workshop repairable / no-repair-needed decision."""
+    """Input DTO for central-workshop repairable / no-repair-needed decision.
+
+    Attributes:
+        estimated_delivery_at: Estimated vehicle delivery date/time, required
+            when ``repairable`` is True.
+    """
 
     repair_order_id: uuid.UUID
     repairable: bool
     request_id: str
     decided_by: uuid.UUID
     note: str = ""
+    estimated_delivery_at: datetime | None = field(default=None)
 
 
 @dataclass(frozen=True)
@@ -310,6 +316,7 @@ class RepairDecisionResponseDTO:
     workshop_id: str | None = field(default=None)
     external_referral_request_id: uuid.UUID | None = field(default=None)
     transport_rejection_reason: str | None = field(default=None)
+    estimated_delivery_at: datetime | None = field(default=None)
 
 
 @dataclass(frozen=True)
@@ -337,6 +344,7 @@ class RepairOrderResponseDTO:
     transport_approval_note: str | None = field(default=None)
     workshop_decision_note: str | None = field(default=None)
     completed_at: datetime | None = field(default=None)
+    estimated_delivery_at: datetime | None = field(default=None)
 
 
 @dataclass(frozen=True)

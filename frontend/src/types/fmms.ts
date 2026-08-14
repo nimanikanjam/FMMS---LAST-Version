@@ -234,6 +234,7 @@ export interface RepairOrder {
   workshop_decision_note?: string | null;
   updated_at?: string;
   completed_at?: string | null;
+  estimated_delivery_at?: string | null;
   parts?: RepairPart[];
   activities?: RepairActivity[];
 }

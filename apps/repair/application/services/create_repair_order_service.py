@@ -39,6 +39,7 @@ def _to_response_dto(order: RepairOrder) -> RepairOrderResponseDTO:
         created_at=order.created_at,
         updated_at=order.updated_at,
         completed_at=order.completed_at,
+        estimated_delivery_at=order.estimated_delivery_at,
         sap_order_number=order.sap_order_number,
         workshop_type=order.workshop_type,
         workshop_id=order.workshop_id,

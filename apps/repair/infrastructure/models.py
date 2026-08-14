@@ -35,6 +35,7 @@ class RepairOrderModel(BusinessRecordModel):
     transport_approval_note = models.CharField(max_length=500, blank=True, default="")
     workshop_decision_note = models.CharField(max_length=500, blank=True, default="")
     completed_at = models.DateTimeField(null=True, blank=True, default=None)
+    estimated_delivery_at = models.DateTimeField(null=True, blank=True, default=None)
     # TechnicianAssignment (value object — denormalized)
     assigned_technician_id = models.UUIDField(null=True, blank=True, default=None)
     assigned_at = models.DateTimeField(null=True, blank=True, default=None)

@@ -107,6 +107,7 @@ def _to_domain(
         transport_approval_note=orm.transport_approval_note or None,
         workshop_decision_note=orm.workshop_decision_note or None,
         completed_at=orm.completed_at,
+        estimated_delivery_at=orm.estimated_delivery_at,
     )
 
 
@@ -237,6 +238,7 @@ class DjangoRepairOrderRepository(IRepairOrderRepository):
                     "transport_approval_note": order.transport_approval_note or "",
                     "workshop_decision_note": order.workshop_decision_note or "",
                     "completed_at": order.completed_at,
+                    "estimated_delivery_at": order.estimated_delivery_at,
                     "assigned_technician_id": (
                         order.assignment.technician_id if order.assignment else None
                     ),

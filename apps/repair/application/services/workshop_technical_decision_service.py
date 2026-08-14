@@ -130,7 +130,7 @@ class WorkshopTechnicalDecisionService:
             )
 
         order = self._repo.get_by_id(dto.repair_order_id)
-        order.mark_repairable(dto.note or None)
+        order.mark_repairable(dto.note or None, dto.estimated_delivery_at)
         order.updated_at = datetime.now(tz=UTC)
         saved = self._repo.save(order)
 
@@ -199,6 +199,7 @@ class WorkshopTechnicalDecisionService:
             ),
             workshop_type=saved.workshop_type,
             workshop_id=saved.workshop_id,
+            estimated_delivery_at=saved.estimated_delivery_at,
         )
 
     def _mark_no_repair_needed(

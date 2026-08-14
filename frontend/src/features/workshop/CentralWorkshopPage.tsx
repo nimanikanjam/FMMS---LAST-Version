@@ -192,6 +192,7 @@ export function CentralWorkshopPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [decisionNote, setDecisionNote] = useState('');
+  const [estimatedDeliveryAt, setEstimatedDeliveryAt] = useState('');
   const [requestPart, setRequestPart] = useState<MaterialPickValue>(EMPTY_MATERIAL_PICK);
   const [requestQty, setRequestQty] = useState('1');
   const [requestLines, setRequestLines] = useState<PartLineDraft[]>([]);
@@ -295,6 +296,7 @@ export function CentralWorkshopPage() {
     setActionError('');
     setSuccess('');
     setDecisionNote('');
+    setEstimatedDeliveryAt('');
     setActivityDescription('');
     setActivityHours('');
     setActivityNotes('');
@@ -335,12 +337,19 @@ export function CentralWorkshopPage() {
 
   const decide = async (repairable: boolean) => {
     if (!selected) return;
+    if (repairable && !estimatedDeliveryAt) {
+      setActionError('تاریخ تحویل تخمینی الزامی است.');
+      return;
+    }
     setActionLoading(repairable ? 'repairable' : 'no-repair');
     setActionError('');
     try {
       const result = await api.workshopTechnicalDecision(selected.id, {
         repairable,
         note: decisionNote,
+        estimated_delivery_at: repairable
+          ? new Date(estimatedDeliveryAt).toISOString()
+          : undefined,
       });
       setSuccess(result.message);
       await Promise.all([load(), refreshKpis()]);
@@ -673,6 +682,14 @@ export function CentralWorkshopPage() {
                     value={detail.order.workshop_decision_note || '—'}
                   />
                   <DetailLine
+                    label="تاریخ تحویل تخمینی"
+                    value={
+                      detail.order.estimated_delivery_at
+                        ? new Date(detail.order.estimated_delivery_at).toLocaleString('fa-IR')
+                        : '—'
+                    }
+                  />
+                  <DetailLine
                     label="PM Order"
                     value={detail.order.sap_order_number || 'هنوز ایجاد نشده'}
                   />
@@ -694,12 +711,21 @@ export function CentralWorkshopPage() {
                     value={decisionNote}
                     onChange={(event) => setDecisionNote(event.target.value)}
                   />
+                  <RtlTextField
+                    fullWidth
+                    type="datetime-local"
+                    label="تاریخ تحویل تخمینی"
+                    value={estimatedDeliveryAt}
+                    onChange={(event) => setEstimatedDeliveryAt(event.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                  />
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap>
                     <Button
                       color="success"
                       variant="contained"
                       startIcon={<CheckCircleOutline />}
                       loading={actionLoading === 'repairable'}
+                      disabled={!estimatedDeliveryAt}
                       onClick={() => void decide(true)}
                     >
                       نیاز به تعمیر دارد

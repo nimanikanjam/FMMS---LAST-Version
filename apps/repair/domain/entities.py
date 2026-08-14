@@ -278,6 +278,7 @@ class RepairOrder:
     transport_approval_note: str | None = field(default=None)
     workshop_decision_note: str | None = field(default=None)
     completed_at: datetime | None = field(default=None)
+    estimated_delivery_at: datetime | None = field(default=None)
 
     def _assert_mutable(self, operation: str) -> None:
         """Assert that the order is in a mutable state.
@@ -448,7 +449,11 @@ class RepairOrder:
             )
         self.transition_to(RepairOrderStatus.WAITING_WORKSHOP_CONFIRMATION)
 
-    def mark_repairable(self, note: str | None = None) -> None:
+    def mark_repairable(
+        self,
+        note: str | None = None,
+        estimated_delivery_at: datetime | None = None,
+    ) -> None:
         """Workshop confirms the vehicle needs repair (before PM Order / start)."""
         if self.workshop_type != WorkshopType.INTERNAL:
             raise RepairOrderInvalidStateTransitionError(
@@ -465,6 +470,7 @@ class RepairOrder:
             )
         if note:
             self.workshop_decision_note = note
+        self.estimated_delivery_at = estimated_delivery_at
         self.transition_to(RepairOrderStatus.IN_PROGRESS)
 
     def mark_no_repair_needed(self, note: str | None = None) -> None:

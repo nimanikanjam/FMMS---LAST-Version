@@ -252,6 +252,9 @@ class RepairOrderViewSet(
                 repair_order_id=uuid.UUID(str(pk)),
                 repairable=serializer.validated_data["repairable"],
                 note=serializer.validated_data.get("note", ""),
+                estimated_delivery_at=serializer.validated_data.get(
+                    "estimated_delivery_at"
+                ),
                 request_id=request_id_from(request),
                 decided_by=user_id_from(request),
             )
