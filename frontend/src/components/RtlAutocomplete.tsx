@@ -51,16 +51,23 @@ export function RtlAutocomplete<
       )}
       sx={{
         direction: 'rtl',
-        '& .MuiAutocomplete-inputRoot': {
-          paddingLeft: '4px !important',
-          paddingRight: '14px !important',
+        // MUI reserves the icons' space with paddingRight (LTR assumption).
+        // Flip it: free up the right side, reserve room on the left instead
+        // — wide enough for both the popup arrow and the clear (×) button.
+        '& .MuiOutlinedInput-root.MuiAutocomplete-inputRoot': {
+          paddingLeft: '56px !important',
+          paddingRight: '9px !important',
         },
         '& .MuiAutocomplete-input': {
           textAlign: 'right',
+          paddingRight: '4px',
+          paddingLeft: '5px',
         },
-        '& .MuiAutocomplete-endAdornment': {
-          left: 8,
-          right: 'auto',
+        // MUI's own rule is scoped as ".MuiOutlinedInput-root .MuiAutocomplete-endAdornment"
+        // (higher specificity than a bare class selector) — match it so this wins.
+        '& .MuiOutlinedInput-root .MuiAutocomplete-endAdornment': {
+          left: '9px !important',
+          right: 'auto !important',
         },
         '& .MuiAutocomplete-popupIndicator': {
           color: 'text.secondary',
