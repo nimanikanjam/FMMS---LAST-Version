@@ -177,6 +177,12 @@ class UserAccountSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Unknown role.")
         return value
 
+    def validate_personnel_number(self, value: str) -> str:
+        """Every FMMS user is tied to a SAP personnel number — never optional."""
+        if not value.strip():
+            raise serializers.ValidationError("Personnel number is required.")
+        return value
+
     def create(self, validated_data: dict[str, Any]) -> FMMSUser:
         """Create a user via the manager so the password is hashed."""
         password = validated_data.pop("password", "") or None

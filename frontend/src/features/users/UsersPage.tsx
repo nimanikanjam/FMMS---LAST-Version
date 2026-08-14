@@ -42,6 +42,8 @@ type FormState = {
   vehicleLoadFailed: boolean;
 };
 
+type DriverLookupState = 'idle' | 'loading' | 'found' | 'no_vehicle' | 'not_found';
+
 const EMPTY_FORM: FormState = {
   id: null,
   username: '',
@@ -75,6 +77,9 @@ export function UsersPage() {
   const [vehicleOptions, setVehicleOptions] = useState<Vehicle[]>([]);
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [vehicleLoading, setVehicleLoading] = useState(false);
+
+  const [driverLookup, setDriverLookup] = useState<DriverLookupState>('idle');
+  const [driverVehiclePlate, setDriverVehiclePlate] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -112,6 +117,59 @@ export function UsersPage() {
       cancelled = true;
     };
   }, [dialogOpen, vehicleSearch]);
+
+  // DRIVER role: the assigned vehicle isn't picked manually — it's resolved
+  // from the SAP driver linked by personnel number, same as the driver's own
+  // "وضعیت خودروی من" page.
+  useEffect(() => {
+    if (!dialogOpen || form.role !== 'DRIVER') {
+      setDriverLookup('idle');
+      setDriverVehiclePlate(null);
+      return;
+    }
+    const personnelNumber = form.personnel_number.trim();
+    if (!personnelNumber) {
+      setDriverLookup('idle');
+      setDriverVehiclePlate(null);
+      setForm((f) => (f.assignedVehicleId ? { ...f, assignedVehicleId: null } : f));
+      return;
+    }
+    let cancelled = false;
+    setDriverLookup('loading');
+    const timer = setTimeout(() => {
+      api
+        .listDrivers({ search: personnelNumber, pageSize: 5 })
+        .then((result) => {
+          if (cancelled) return;
+          const driver = result.results.find((d) => d.personnel_number === personnelNumber);
+          if (!driver) {
+            setDriverLookup('not_found');
+            setDriverVehiclePlate(null);
+            setForm((f) => ({ ...f, assignedVehicleId: null }));
+            return;
+          }
+          const vehicle = driver.current_vehicle_as_driver ?? driver.current_vehicle_as_assistant ?? null;
+          setForm((f) => ({ ...f, assignedVehicleId: vehicle?.id ?? null }));
+          if (vehicle) {
+            setDriverLookup('found');
+            setDriverVehiclePlate(vehicle.license_plate);
+          } else {
+            setDriverLookup('no_vehicle');
+            setDriverVehiclePlate(null);
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setDriverLookup('not_found');
+          setDriverVehiclePlate(null);
+          setForm((f) => ({ ...f, assignedVehicleId: null }));
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [dialogOpen, form.role, form.personnel_number]);
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -155,8 +213,13 @@ export function UsersPage() {
 
   const submit = async () => {
     setFormError('');
-    if (!form.username.trim() || !form.email.trim() || !form.full_name.trim()) {
-      setFormError('نام کاربری، ایمیل و نام کامل الزامی است.');
+    if (
+      !form.username.trim() ||
+      !form.email.trim() ||
+      !form.full_name.trim() ||
+      !form.personnel_number.trim()
+    ) {
+      setFormError('نام کاربری، ایمیل، نام کامل و کد پرسنلی الزامی است.');
       return;
     }
     if (!form.id && !form.password.trim()) {
@@ -332,37 +395,66 @@ export function UsersPage() {
               ))}
             </RtlSelectField>
             <RtlTextField
-              label="کد پرسنلی SAP (اختیاری)"
+              label="کد پرسنلی SAP"
               value={form.personnel_number}
               onChange={(e) => setForm((f) => ({ ...f, personnel_number: e.target.value }))}
               fullWidth
+              required
             />
-            <Autocomplete
-              options={vehicleOptions}
-              value={form.vehicle}
-              loading={vehicleLoading}
-              onChange={(_, next) =>
-                setForm((f) => ({
-                  ...f,
-                  vehicle: next,
-                  assignedVehicleId: next?.id ?? null,
-                  vehicleLoadFailed: false,
-                }))
-              }
-              onInputChange={(_, next) => setVehicleSearch(next)}
-              getOptionLabel={(option) => option.license_plate}
-              isOptionEqualToValue={(option, val) => option.id === val.id}
-              renderInput={(params) => (
-                <RtlTextField {...params} label="پلاک تخصیص‌یافته (اختیاری)" />
-              )}
-              noOptionsText="خودرویی یافت نشد"
-              clearOnBlur={false}
-            />
-            {form.vehicleLoadFailed && (
-              <Typography variant="caption" color="warning.main">
-                پلاک فعلی این کاربر بارگذاری نشد، اما همچنان تخصیص‌یافته باقی می‌ماند مگر
-                این‌که آن را از فیلد بالا تغییر دهید.
-              </Typography>
+            {form.role === 'DRIVER' ? (
+              <>
+                <RtlTextField
+                  label="پلاک تخصیص‌یافته"
+                  value={
+                    driverLookup === 'loading'
+                      ? 'در حال یافتن خودرو...'
+                      : driverVehiclePlate || ''
+                  }
+                  placeholder="با تکمیل کد پرسنلی، به‌صورت خودکار پر می‌شود"
+                  disabled
+                  fullWidth
+                />
+                {driverLookup === 'not_found' && (
+                  <Typography variant="caption" color="warning.main">
+                    راننده‌ای با این کد پرسنلی در SAP یافت نشد.
+                  </Typography>
+                )}
+                {driverLookup === 'no_vehicle' && (
+                  <Typography variant="caption" color="warning.main">
+                    این راننده در حال حاضر خودرویی در SAP ندارد.
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <>
+                <Autocomplete
+                  options={vehicleOptions}
+                  value={form.vehicle}
+                  loading={vehicleLoading}
+                  onChange={(_, next) =>
+                    setForm((f) => ({
+                      ...f,
+                      vehicle: next,
+                      assignedVehicleId: next?.id ?? null,
+                      vehicleLoadFailed: false,
+                    }))
+                  }
+                  onInputChange={(_, next) => setVehicleSearch(next)}
+                  getOptionLabel={(option) => option.license_plate}
+                  isOptionEqualToValue={(option, val) => option.id === val.id}
+                  renderInput={(params) => (
+                    <RtlTextField {...params} label="پلاک تخصیص‌یافته (اختیاری)" />
+                  )}
+                  noOptionsText="خودرویی یافت نشد"
+                  clearOnBlur={false}
+                />
+                {form.vehicleLoadFailed && (
+                  <Typography variant="caption" color="warning.main">
+                    پلاک فعلی این کاربر بارگذاری نشد، اما همچنان تخصیص‌یافته باقی می‌ماند مگر
+                    این‌که آن را از فیلد بالا تغییر دهید.
+                  </Typography>
+                )}
+              </>
             )}
             {form.id && (
               <RtlSelectField
