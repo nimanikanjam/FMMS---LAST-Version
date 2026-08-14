@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  Autocomplete,
   Dialog,
   DialogActions,
   DialogContent,
@@ -22,7 +21,7 @@ import { PlainStatusBadge } from '../../components/StatusBadge';
 import { RtlDataTable, type RtlDataTableColumn } from '../../components/RtlDataTable';
 import { RtlSelectField } from '../../components/RtlSelectField';
 import { RtlTextField } from '../../components/RtlTextField';
-import type { UserAccount, Vehicle } from '../../types/fmms';
+import type { UserAccount } from '../../types/fmms';
 
 type FormState = {
   id: string | null;
@@ -33,13 +32,9 @@ type FormState = {
   role: string;
   personnel_number: string;
   is_active: boolean;
-  // `vehicle` is only for the Autocomplete's display label. The ID actually
-  // submitted is `assignedVehicleId`, tracked separately so that a failed
-  // plate lookup in openEdit (deleted vehicle, network blip) can never
-  // silently wipe an existing assignment on save.
-  vehicle: Vehicle | null;
+  // Only ever set automatically from the DRIVER-role SAP lookup below.
+  // No other role has a UI to assign a plate.
   assignedVehicleId: string | null;
-  vehicleLoadFailed: boolean;
 };
 
 type DriverLookupState = 'idle' | 'loading' | 'found' | 'no_vehicle' | 'not_found';
@@ -53,16 +48,14 @@ const EMPTY_FORM: FormState = {
   role: 'VIEWER',
   personnel_number: '',
   is_active: true,
-  vehicle: null,
   assignedVehicleId: null,
-  vehicleLoadFailed: false,
 };
 
 function normalizePaginated<T>(payload: { results?: T[] } | T[]): T[] {
   return Array.isArray(payload) ? payload : (payload.results ?? []);
 }
 
-/** Admin-only account management, including manually assigning a plate to a user. */
+/** Admin-only account management. DRIVER-role plates are resolved automatically from SAP. */
 export function UsersPage() {
   const canEdit = useCanEdit();
   const [users, setUsers] = useState<UserAccount[]>([]);
@@ -73,10 +66,6 @@ export function UsersPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
-
-  const [vehicleOptions, setVehicleOptions] = useState<Vehicle[]>([]);
-  const [vehicleSearch, setVehicleSearch] = useState('');
-  const [vehicleLoading, setVehicleLoading] = useState(false);
 
   const [driverLookup, setDriverLookup] = useState<DriverLookupState>('idle');
   const [driverVehiclePlate, setDriverVehiclePlate] = useState<string | null>(null);
@@ -97,26 +86,6 @@ export function UsersPage() {
   useEffect(() => {
     void load();
   }, []);
-
-  useEffect(() => {
-    if (!dialogOpen) return;
-    let cancelled = false;
-    setVehicleLoading(true);
-    api
-      .listVehicles('', 'license_plate', { page: 1, pageSize: 20, search: vehicleSearch || undefined })
-      .then((result) => {
-        if (!cancelled) setVehicleOptions(result.results);
-      })
-      .catch(() => {
-        if (!cancelled) setVehicleOptions([]);
-      })
-      .finally(() => {
-        if (!cancelled) setVehicleLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [dialogOpen, vehicleSearch]);
 
   // DRIVER role: the assigned vehicle isn't picked manually — it's resolved
   // from the SAP driver linked by personnel number, same as the driver's own
@@ -177,17 +146,8 @@ export function UsersPage() {
     setDialogOpen(true);
   };
 
-  const openEdit = async (user: UserAccount) => {
+  const openEdit = (user: UserAccount) => {
     setFormError('');
-    let vehicle: Vehicle | null = null;
-    let vehicleLoadFailed = false;
-    if (user.assigned_vehicle_id) {
-      try {
-        vehicle = await api.getVehicle(user.assigned_vehicle_id);
-      } catch {
-        vehicleLoadFailed = true;
-      }
-    }
     setForm({
       id: user.id,
       username: user.username,
@@ -197,11 +157,9 @@ export function UsersPage() {
       role: user.role,
       personnel_number: user.personnel_number || '',
       is_active: user.is_active,
-      vehicle,
-      // Keep the existing assignment even if we couldn't resolve its plate —
-      // only the Autocomplete (explicit admin action) should change this.
+      // Non-DRIVER roles have no plate UI, so this is only ever touched by
+      // the DRIVER SAP lookup effect below — preserved as-is otherwise.
       assignedVehicleId: user.assigned_vehicle_id,
-      vehicleLoadFailed,
     });
     setDialogOpen(true);
   };
@@ -311,7 +269,7 @@ export function UsersPage() {
     <FeaturePage>
       <PageHeader
         title="کاربران"
-        description="حساب‌های کاربری سامانه و تخصیص پلاک خودرو به هر کاربر را مدیریت کنید."
+        description="حساب‌های کاربری سامانه را مدیریت کنید."
         breadcrumbs={[{ label: 'مدیریت' }, { label: 'کاربران' }]}
         accentColor="secondary.main"
         actions={
@@ -401,7 +359,7 @@ export function UsersPage() {
               fullWidth
               required
             />
-            {form.role === 'DRIVER' ? (
+            {form.role === 'DRIVER' && (
               <>
                 <RtlTextField
                   label="پلاک تخصیص‌یافته"
@@ -422,36 +380,6 @@ export function UsersPage() {
                 {driverLookup === 'no_vehicle' && (
                   <Typography variant="caption" color="warning.main">
                     این راننده در حال حاضر خودرویی در SAP ندارد.
-                  </Typography>
-                )}
-              </>
-            ) : (
-              <>
-                <Autocomplete
-                  options={vehicleOptions}
-                  value={form.vehicle}
-                  loading={vehicleLoading}
-                  onChange={(_, next) =>
-                    setForm((f) => ({
-                      ...f,
-                      vehicle: next,
-                      assignedVehicleId: next?.id ?? null,
-                      vehicleLoadFailed: false,
-                    }))
-                  }
-                  onInputChange={(_, next) => setVehicleSearch(next)}
-                  getOptionLabel={(option) => option.license_plate}
-                  isOptionEqualToValue={(option, val) => option.id === val.id}
-                  renderInput={(params) => (
-                    <RtlTextField {...params} label="پلاک تخصیص‌یافته (اختیاری)" />
-                  )}
-                  noOptionsText="خودرویی یافت نشد"
-                  clearOnBlur={false}
-                />
-                {form.vehicleLoadFailed && (
-                  <Typography variant="caption" color="warning.main">
-                    پلاک فعلی این کاربر بارگذاری نشد، اما همچنان تخصیص‌یافته باقی می‌ماند مگر
-                    این‌که آن را از فیلد بالا تغییر دهید.
                   </Typography>
                 )}
               </>
