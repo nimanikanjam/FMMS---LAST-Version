@@ -32,9 +32,19 @@ import { RtlSelectField } from '../../components/RtlSelectField';
 import { Button } from '../../components/Button';
 import { JalaliDateField } from '../../components/JalaliDateField';
 import { JalaliDateTimeField } from '../../components/JalaliDateTimeField';
+import { RtlAutocomplete } from '../../components/RtlAutocomplete';
 import type { VehicleStatus } from '../../types/fmms';
 
 const statuses: VehicleStatus[] = ['ACTIVE', 'UNDER_REPAIR', 'INACTIVE', 'DECOMMISSIONED'];
+
+type DefectOptionDemo = { id: string; label: string; severity: string };
+
+const defectOptionsDemo: DefectOptionDemo[] = [
+  { id: '1', label: 'کپسول آتش‌نشانی', severity: 'زیاد' },
+  { id: '2', label: 'ترمز ضعیف', severity: 'بحرانی' },
+  { id: '3', label: 'چراغ جلو معیوب', severity: 'متوسط' },
+  { id: '4', label: 'لاستیک ساییده', severity: 'زیاد' },
+];
 
 const vehicleRows = [
   { plate: 'ایران ۲۱ - ۴۵۶ ع ۱۲', model: 'کامیونت ایسوزو', status: 'ACTIVE' as VehicleStatus, km: '۱۲۸,۴۲۰' },
@@ -58,6 +68,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export function ComponentShowcasePage() {
   const [jalaliDate, setJalaliDate] = useState('');
   const [jalaliDateTime, setJalaliDateTime] = useState('');
+  const [defectOption, setDefectOption] = useState<DefectOptionDemo | null>(
+    defectOptionsDemo[0],
+  );
   const [orderBy, setOrderBy] = useState<ShowcaseSortKey>('plate');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const sortedRows = useMemo(() => {
@@ -138,6 +151,33 @@ export function ComponentShowcasePage() {
                   onChange={setJalaliDateTime}
                   fullWidth
                 />
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Section>
+
+      <Section title="جست‌وجوی هوشمند (Autocomplete)">
+        <Grid container spacing={1.5}>
+          <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+            <Card>
+              <CardContent>
+                <Stack spacing={1}>
+                  <RtlAutocomplete
+                    label="نوع خرابی"
+                    options={defectOptionsDemo}
+                    value={defectOption}
+                    onChange={(_, next) => setDefectOption(next)}
+                    getOptionLabel={(option) => option.label}
+                    isOptionEqualToValue={(option, val) => option.id === val.id}
+                    noOptionsText="موردی یافت نشد"
+                  />
+                  {defectOption && (
+                    <Typography variant="caption" color="text.secondary">
+                      شدت خرابی: {defectOption.severity}
+                    </Typography>
+                  )}
+                </Stack>
               </CardContent>
             </Card>
           </Grid>

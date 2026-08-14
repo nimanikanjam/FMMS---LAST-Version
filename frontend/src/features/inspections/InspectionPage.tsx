@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type UIEvent } from 'react';
 import {
   Alert,
-  Autocomplete,
   Box,
   Card,
   CardContent,
@@ -21,6 +20,7 @@ import { api } from '../../api/client';
 import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
+import { RtlAutocomplete } from '../../components/RtlAutocomplete';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
 import { RtlSelectField } from '../../components/RtlSelectField';
 import { RtlTextField } from '../../components/RtlTextField';
@@ -1664,7 +1664,8 @@ export function InspectionPage() {
                             <Alert severity="warning" sx={{ py: 0.5 }}>
                               برای ادامه، نوع خرابی را از فهرست انتخاب کنید.
                             </Alert>
-                            <Autocomplete
+                            <RtlAutocomplete
+                              label="نوع خرابی"
                               options={defectOptions}
                               loading={defectOptionsLoading}
                               value={
@@ -1686,14 +1687,8 @@ export function InspectionPage() {
                               getOptionLabel={(option) => option.code_text}
                               isOptionEqualToValue={(option, val) => option.id === val.id}
                               noOptionsText="موردی یافت نشد"
-                              renderInput={(params) => (
-                                <RtlTextField
-                                  {...params}
-                                  label="نوع خرابی"
-                                  error={Boolean(currentItem.errors.defectOption)}
-                                  helperText={currentItem.errors.defectOption}
-                                />
-                              )}
+                              error={Boolean(currentItem.errors.defectOption)}
+                              helperText={currentItem.errors.defectOption}
                             />
                             {currentItem.defectOptionId && currentItem.severity && (
                               <Typography variant="caption" color="text.secondary">
