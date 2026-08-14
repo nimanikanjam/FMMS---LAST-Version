@@ -30,6 +30,8 @@ import { RtlTextField } from '../../components/RtlTextField';
 import { FilterPanel } from '../../components/FilterPanel';
 import { RtlSelectField } from '../../components/RtlSelectField';
 import { Button } from '../../components/Button';
+import { JalaliDateField } from '../../components/JalaliDateField';
+import { JalaliDateTimeField } from '../../components/JalaliDateTimeField';
 import type { VehicleStatus } from '../../types/fmms';
 
 const statuses: VehicleStatus[] = ['ACTIVE', 'UNDER_REPAIR', 'INACTIVE', 'DECOMMISSIONED'];
@@ -54,6 +56,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function ComponentShowcasePage() {
+  const [jalaliDate, setJalaliDate] = useState('');
+  const [jalaliDateTime, setJalaliDateTime] = useState('');
   const [orderBy, setOrderBy] = useState<ShowcaseSortKey>('plate');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const sortedRows = useMemo(() => {
@@ -112,6 +116,30 @@ export function ComponentShowcasePage() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
             <KpiCard label="مصرف ثبت‌شده" value="۳,۸۲۰ L" helper="ماه جاری" icon={LocalGasStation} tone="secondary" />
+          </Grid>
+        </Grid>
+      </Section>
+
+      <Section title="تقویم شمسی">
+        <Grid container spacing={1.5}>
+          <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+            <Card>
+              <CardContent>
+                <JalaliDateField label="تاریخ" value={jalaliDate} onChange={setJalaliDate} fullWidth />
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+            <Card>
+              <CardContent>
+                <JalaliDateTimeField
+                  label="تاریخ و ساعت"
+                  value={jalaliDateTime}
+                  onChange={setJalaliDateTime}
+                  fullWidth
+                />
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
       </Section>
