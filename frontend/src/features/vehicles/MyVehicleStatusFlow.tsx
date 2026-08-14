@@ -167,7 +167,7 @@ function FlowNode({
   waitingParts: boolean;
 }) {
   return (
-    <Stack direction="row" spacing={2.25} alignItems="stretch">
+    <Stack direction="row" spacing={3.5} alignItems="stretch">
       <Stack alignItems="center" sx={{ width: 34, flexShrink: 0 }}>
         <Box
           sx={{
