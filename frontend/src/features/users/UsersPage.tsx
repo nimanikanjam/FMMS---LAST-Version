@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { Add, Close } from '@mui/icons-material';
 import { api, ApiError } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { ROLE_LABELS, ROLE_OPTIONS } from '../../app/roles';
 import { Button } from '../../components/Button';
 import { EmptyState, ErrorState } from '../../components/States';
@@ -61,6 +62,7 @@ function normalizePaginated<T>(payload: { results?: T[] } | T[]): T[] {
 
 /** Admin-only account management, including manually assigning a plate to a user. */
 export function UsersPage() {
+  const canEdit = useCanEdit();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -225,17 +227,21 @@ export function UsersPage() {
         />
       ),
     },
-    {
-      key: 'actions',
-      label: 'ویرایش',
-      align: 'center',
-      skeleton: 'button',
-      render: (u) => (
-        <Button size="small" variant="outlined" onClick={() => void openEdit(u)}>
-          ویرایش
-        </Button>
-      ),
-    },
+    ...(canEdit
+      ? [
+          {
+            key: 'actions' as const,
+            label: 'ویرایش',
+            align: 'center' as const,
+            skeleton: 'button' as const,
+            render: (u: UserAccount) => (
+              <Button size="small" variant="outlined" onClick={() => void openEdit(u)}>
+                ویرایش
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -246,9 +252,11 @@ export function UsersPage() {
         breadcrumbs={[{ label: 'مدیریت' }, { label: 'کاربران' }]}
         accentColor="secondary.main"
         actions={
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
-            کاربر جدید
-          </Button>
+          canEdit ? (
+            <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
+              کاربر جدید
+            </Button>
+          ) : undefined
         }
       />
 

@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import { Build, Inventory2 } from '../../components/icons3d/Icons3D';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { ClearFiltersButton } from '../../components/ClearFiltersButton';
 import { DetailLine } from '../../components/DetailLine';
@@ -173,6 +174,7 @@ function vehiclePlate(vehicle: Vehicle | null | undefined, vehicleId: string): s
  * Central workshop inbox for technical inspection and parts handling.
  */
 export function CentralWorkshopPage() {
+  const canEdit = useCanEdit();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -581,13 +583,14 @@ export function CentralWorkshopPage() {
   );
 
   const canDecide =
-    detail?.order.status === 'WORKSHOP_ASSIGNED' ||
-    detail?.order.status === 'WAITING_WORKSHOP_CONFIRMATION';
-  const canRequestParts = detail?.order.status === 'IN_PROGRESS';
-  const canReceiveParts = detail?.order.status === 'WAITING_PARTS';
-  const canCompleteRepair = detail?.order.status === 'IN_PROGRESS';
-  const canRecordConsumed = detail?.order.status === 'IN_PROGRESS';
-  const canRecordActivity = detail?.order.status === 'IN_PROGRESS';
+    canEdit &&
+    (detail?.order.status === 'WORKSHOP_ASSIGNED' ||
+      detail?.order.status === 'WAITING_WORKSHOP_CONFIRMATION');
+  const canRequestParts = canEdit && detail?.order.status === 'IN_PROGRESS';
+  const canReceiveParts = canEdit && detail?.order.status === 'WAITING_PARTS';
+  const canCompleteRepair = canEdit && detail?.order.status === 'IN_PROGRESS';
+  const canRecordConsumed = canEdit && detail?.order.status === 'IN_PROGRESS';
+  const canRecordActivity = canEdit && detail?.order.status === 'IN_PROGRESS';
   const canSubmitConsumed = consumedLines.length > 0;
   const canSubmitActivity =
     activityDescription.trim().length > 0 &&

@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { DirectionsCar, FactCheck, ReportProblem } from '../../components/icons3d/Icons3D';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { ClearFiltersButton } from '../../components/ClearFiltersButton';
 import { DetailLine } from '../../components/DetailLine';
@@ -167,6 +168,7 @@ function faultSummaryLabel(fault: Fault): string {
  * Distribution unit queue for reviewing reported vehicle faults.
  */
 export function DistributionFaultsPage() {
+  const canEdit = useCanEdit();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -596,7 +598,7 @@ export function DistributionFaultsPage() {
                     وضعیت فعلی: {faultStatusLabel(detail.fault.status)}
                   </Typography>
                 </Alert>
-              ) : (
+              ) : !canEdit ? null : (
                 <>
                   <RtlTextField
                     fullWidth

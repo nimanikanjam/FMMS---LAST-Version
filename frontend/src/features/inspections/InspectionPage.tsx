@@ -17,6 +17,7 @@ import { Cancel, CheckCircle, CheckCircleOutline, Logout } from '@mui/icons-mate
 import { ReportProblem } from '../../components/icons3d/Icons3D';
 import { Link as RouterLink } from 'react-router-dom';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
@@ -296,6 +297,7 @@ function pickTodayOdometer(readings: OdometerReading[]): OdometerReading | null 
  * personnel lookup (admin) / assigned vehicle (driver) → odometer → checklist → submit.
  */
 export function InspectionPage() {
+  const canEdit = useCanEdit();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [bootLoading, setBootLoading] = useState(true);
   const [bootError, setBootError] = useState('');
@@ -1049,6 +1051,24 @@ export function InspectionPage() {
 
   if (bootLoading) return <LoadingState label="در حال آماده‌سازی بازرسی روزانه" />;
   if (bootError) return <ErrorState message={bootError} onRetry={() => window.location.reload()} />;
+
+  if (!canEdit) {
+    return (
+      <Stack spacing={2} style={{ direction: 'rtl', textAlign: 'right' }}>
+        <PageHeader
+          title="بازرسی روزانه خودرو"
+          breadcrumbs={[
+            { label: 'راننده' },
+            { label: 'بازرسی روزانه' },
+          ]}
+        />
+        <EmptyState
+          title="این بخش قابل مشاهده نیست."
+          subtitle="بازرسی روزانه یک فرآیند ثبت است و برای نقش ناظر کل (فقط مشاهده) در دسترس نیست."
+        />
+      </Stack>
+    );
+  }
 
   if (!admin && !assignedVehicleForDriver) {
     return (

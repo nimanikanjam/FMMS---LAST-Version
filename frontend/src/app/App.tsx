@@ -23,6 +23,7 @@ import { MaterialsPage } from '../features/materials/MaterialsPage';
 import { UsersPage } from '../features/users/UsersPage';
 import { modules } from './modules';
 import { RequireModule } from './RequireModule';
+import { CurrentUserProvider } from './CurrentUserContext';
 
 function PlaceholderPage({ label }: { label: string }) {
   return (
@@ -43,7 +44,11 @@ function PlaceholderPage({ label }: { label: string }) {
 
 function RequireAuth() {
   if (!api.getAccessToken()) return <Navigate to="/login" replace />;
-  return <AppLayout />;
+  return (
+    <CurrentUserProvider>
+      <AppLayout />
+    </CurrentUserProvider>
+  );
 }
 
 function guarded(moduleKey: string, element: ReactNode) {

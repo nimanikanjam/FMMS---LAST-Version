@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { Build, DirectionsCar, FactCheck, LocalShipping } from '../../components/icons3d/Icons3D';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { ClearFiltersButton } from '../../components/ClearFiltersButton';
 import { DetailLine } from '../../components/DetailLine';
@@ -152,6 +153,7 @@ function vehiclePlate(vehicle: Vehicle | undefined | null, vehicleId: string): s
  * Transport supervisor inbox for repair-needed decisions and workshop selection.
  */
 export function TransportRepairsPage() {
+  const canEdit = useCanEdit();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -426,10 +428,10 @@ export function TransportRepairsPage() {
   };
 
   const currentOrder = detail?.order ?? selected;
-  const canDecide = currentOrder?.status === 'CREATED';
+  const canDecide = canEdit && currentOrder?.status === 'CREATED';
   const workshopAlreadyAssigned = Boolean(currentOrder?.workshop_type);
   const canAssignWorkshop =
-    currentOrder?.status === 'APPROVED' && !workshopAlreadyAssigned;
+    canEdit && currentOrder?.status === 'APPROVED' && !workshopAlreadyAssigned;
 
   const columns: Array<RtlDataTableColumn<RepairOrder, string>> = [
     {

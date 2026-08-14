@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import { DirectionsCar, FactCheck } from '../../components/icons3d/Icons3D';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { FeaturePage } from '../../components/FeaturePage';
 import { PageHeader } from '../../components/PageHeader';
@@ -166,6 +167,7 @@ const blankService = (): ServiceLine => ({ description: '', labor_hours: '', cos
 const blankPart = (): PartLine => ({ name: '', quantity: '1', cost: '' });
 
 export function ExternalWorkshopPage({ mode }: { mode?: TabKey }) {
+  const canEdit = useCanEdit();
   const [tab, setTab] = useState<TabKey>(mode ?? 'driver');
   const activeTab = mode ?? tab;
   const [items, setItems] = useState<ExternalWorkshopAssignment[]>([]);
@@ -285,7 +287,8 @@ export function ExternalWorkshopPage({ mode }: { mode?: TabKey }) {
   const selectedVehicle = selected ? vehicles.get(selected.vehicle_id) : null;
   const selectedOrder = selected ? orders.get(selected.repair_order_id) : null;
   const selectedReviewCompleted = selected?.status === 'COMPLETED';
-  const canEditSelectedReview = Boolean(selected?.pickup && selected.status !== 'COMPLETED');
+  const canEditSelectedReview =
+    canEdit && Boolean(selected?.pickup && selected.status !== 'COMPLETED');
 
   const submitDelivery = async () => {
     if (!selected) return;
@@ -532,7 +535,7 @@ export function ExternalWorkshopPage({ mode }: { mode?: TabKey }) {
               </Stack>
             ),
           },
-          ...(activeTab === 'driver' ? [{
+          ...(canEdit && activeTab === 'driver' ? [{
             label: 'اقدام راننده',
             content: (
               <Stack spacing={1.75}>

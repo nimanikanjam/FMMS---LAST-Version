@@ -15,6 +15,7 @@ import { useTheme } from '@mui/material/styles';
 import { CheckCircleOutline, ShoppingCart } from '@mui/icons-material';
 import { Inventory2, LocalShipping } from '../../components/icons3d/Icons3D';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { ClearFiltersButton } from '../../components/ClearFiltersButton';
 import { DetailLine } from '../../components/DetailLine';
@@ -220,6 +221,7 @@ function PurchaseFlowStepper({ status }: { status: string }) {
  * Transportation inbox for reviewing workshop parts requests.
  */
 export function TransportPartsPage() {
+  const canEdit = useCanEdit();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -569,7 +571,7 @@ export function TransportPartsPage() {
                                 : toFaNumber(String(item.available_quantity ?? 0))
                             }
                           />
-                          {selected.status === 'REQUESTED' ? (
+                          {canEdit && selected.status === 'REQUESTED' ? (
                             <Stack spacing={1.25}>
                               <Typography variant="caption" fontWeight={800}>
                                 روش تامین این قلم
@@ -668,7 +670,7 @@ export function TransportPartsPage() {
                 {actionError ? <Alert severity="error">{actionError}</Alert> : null}
                 {success && selected ? <Alert severity="success">{success}</Alert> : null}
 
-                {selected.status === 'REQUESTED' ? (
+                {canEdit && selected.status === 'REQUESTED' ? (
                   <Stack spacing={1.5}>
                     <RtlTextField
                       label="یادداشت تصمیم"
@@ -692,7 +694,7 @@ export function TransportPartsPage() {
                   </Stack>
                 ) : null}
 
-                {needsPurchaseFollowUp(selected.status) ? (
+                {canEdit && needsPurchaseFollowUp(selected.status) ? (
                   <Stack spacing={1}>
                     <Alert severity="warning">
                       سفارش خرید ثبت شده است. پس از رسید قطعه به انبار، مرحله بعد را

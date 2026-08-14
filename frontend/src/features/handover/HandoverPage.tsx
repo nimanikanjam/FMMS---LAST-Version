@@ -13,6 +13,7 @@ import { useTheme } from '@mui/material/styles';
 import { CheckCircleOutline, DoNotDisturbAlt } from '@mui/icons-material';
 import { DirectionsCar, FactCheck, Handshake } from '../../components/icons3d/Icons3D';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { ClearFiltersButton } from '../../components/ClearFiltersButton';
 import { DetailLine } from '../../components/DetailLine';
@@ -75,6 +76,7 @@ function vehiclePlate(vehicle: Vehicle | null | undefined, vehicleId: string): s
  * Driver inbox for accepting or rejecting repaired vehicle handover.
  */
 export function HandoverPage() {
+  const canEdit = useCanEdit();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -243,7 +245,7 @@ export function HandoverPage() {
 
   const resetFilters = () => setStatus('WAITING_DRIVER_CONFIRMATION');
   const hasActiveFilters = status !== 'WAITING_DRIVER_CONFIRMATION';
-  const canDecide = detail?.handover.status === 'WAITING_DRIVER_CONFIRMATION';
+  const canDecide = canEdit && detail?.handover.status === 'WAITING_DRIVER_CONFIRMATION';
   const workshopType = detail?.order?.workshop_type;
 
   const columns: Array<RtlDataTableColumn<VehicleHandover, string>> = [

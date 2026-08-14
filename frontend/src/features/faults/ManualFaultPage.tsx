@@ -22,6 +22,7 @@ import {
 import { ReportProblem } from '../../components/icons3d/Icons3D';
 import { Link as RouterLink } from 'react-router-dom';
 import { api } from '../../api/client';
+import { useCanEdit } from '../../app/CurrentUserContext';
 import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
@@ -89,6 +90,7 @@ function parentFaultCode(items: FaultCatalog[]): string {
  * Compact manual fault form styled like the daily inspection wizard.
  */
 export function ManualFaultPage() {
+  const canEdit = useCanEdit();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [catalogs, setCatalogs] = useState<FaultCatalog[]>([]);
   const [vehicleId, setVehicleId] = useState('');
@@ -727,19 +729,21 @@ export function ManualFaultPage() {
                         placeholder="در صورت نیاز جزئیات بیشتری بنویسید"
                       />
 
-                      <Stack direction="row" justifyContent="flex-end" mt={1.5}>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          startIcon={<ReportProblem />}
-                          loading={submitting}
-                          onClick={submit}
-                        >
-                          {selectedCatalogs.length > 1
-                            ? `ثبت ${toFaNumber(selectedCatalogs.length)} خرابی`
-                            : 'ثبت خرابی'}
-                        </Button>
-                      </Stack>
+                      {canEdit && (
+                        <Stack direction="row" justifyContent="flex-end" mt={1.5}>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            startIcon={<ReportProblem />}
+                            loading={submitting}
+                            onClick={submit}
+                          >
+                            {selectedCatalogs.length > 1
+                              ? `ثبت ${toFaNumber(selectedCatalogs.length)} خرابی`
+                              : 'ثبت خرابی'}
+                          </Button>
+                        </Stack>
+                      )}
                     </Box>
                   )}
 
