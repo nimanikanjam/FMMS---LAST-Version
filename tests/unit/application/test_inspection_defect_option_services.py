@@ -38,10 +38,8 @@ class FakeInspectionDefectOptionRepository(IInspectionDefectOptionRepository):
             None,
         )
 
-    def list_active(self, *, group_text: str = "") -> list[InspectionDefectOption]:
+    def list_active(self) -> list[InspectionDefectOption]:
         items = [item for item in self._store.values() if item.is_active]
-        if group_text:
-            items = [item for item in items if item.group_text == group_text]
         return sorted(items, key=lambda item: (item.group_text, item.code))
 
     def save(self, option: InspectionDefectOption) -> InspectionDefectOption:
@@ -134,7 +132,12 @@ class TestSyncInspectionDefectOptionsFromSAPService:
 
 
 class TestListInspectionDefectOptionsService:
-    def test_filters_by_category_when_matched(self) -> None:
+    def test_returns_whole_catalog_in_its_own_group_order(self) -> None:
+        """The defect catalog is never cross-filtered by a checklist category.
+
+        Its grouping is unrelated to the checklist catalog's, so every active
+        option is returned, ordered by its own group text for UI grouping.
+        """
         now = datetime.now(tz=UTC)
         brake = InspectionDefectOption(
             id=uuid.uuid4(),
@@ -162,30 +165,25 @@ class TestListInspectionDefectOptionsService:
         )
         repo = FakeInspectionDefectOptionRepository([brake, light])
 
-        result = ListInspectionDefectOptionsService(repo).execute(category="سیستم ترمز")
+        result = ListInspectionDefectOptionsService(repo).execute()
 
-        assert len(result) == 1
-        assert result[0].code == "B001"
+        assert {row.code for row in result} == {"B001", "L001"}
 
-    def test_falls_back_to_full_catalog_when_category_has_no_match(self) -> None:
+    def test_skips_inactive_options(self) -> None:
+        """Deactivated rows (dropped from SAP) are not offered to drivers."""
         now = datetime.now(tz=UTC)
-        brake = InspectionDefectOption(
+        retired = InspectionDefectOption(
             id=uuid.uuid4(),
             code_group="BRAKE-D",
-            code="B001",
+            code="B009",
             group_text="سیستم ترمز",
-            code_text="ترمز ضعیف",
-            defect_class="S1",
-            defect_class_text="Critical / بحرانی",
-            is_active=True,
+            code_text="کد بازنشسته",
+            defect_class="S3",
+            defect_class_text="Minor / جزئی",
+            is_active=False,
             created_at=now,
             updated_at=now,
         )
-        repo = FakeInspectionDefectOptionRepository([brake])
+        repo = FakeInspectionDefectOptionRepository([retired])
 
-        result = ListInspectionDefectOptionsService(repo).execute(
-            category="بخشی که در کاتالوگ خرابی وجود ندارد"
-        )
-
-        assert len(result) == 1
-        assert result[0].code == "B001"
+        assert ListInspectionDefectOptionsService(repo).execute() == []

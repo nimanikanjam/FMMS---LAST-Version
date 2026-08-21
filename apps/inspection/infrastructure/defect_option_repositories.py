@@ -56,11 +56,9 @@ class DjangoInspectionDefectOptionRepository(IInspectionDefectOptionRepository):
         ).first()
         return _to_domain(orm) if orm else None
 
-    def list_active(self, *, group_text: str = "") -> list[InspectionDefectOption]:
+    def list_active(self) -> list[InspectionDefectOption]:
         """Return active rows ordered by group text, then code."""
         qs = InspectionDefectOptionModel.objects.filter(is_active=True, is_deleted=False)
-        if group_text:
-            qs = qs.filter(group_text=group_text)
         return [_to_domain(orm) for orm in qs.order_by("group_text", "code")]
 
     def save(self, option: InspectionDefectOption) -> InspectionDefectOption:

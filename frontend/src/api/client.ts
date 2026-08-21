@@ -772,19 +772,21 @@ export const api = {
     );
   },
 
+  /** Checklist items (SAP ZI_FLEET_CAT_B). Whole catalog — it drives the wizard. */
   listInspectionTemplates() {
     return request<Paginated<InspectionTemplate> | InspectionTemplate[]>(
-      '/inspection-templates/',
+      '/inspection-templates/?page_size=100',
     );
   },
 
-  /** Fault-type options (SAP's real defect catalog) for the daily-inspection fail step. */
-  listInspectionDefectOptions(category?: string) {
-    const params = new URLSearchParams();
-    if (category?.trim()) params.set('category', category.trim());
-    const query = params.toString() ? `?${params.toString()}` : '';
+  /**
+   * Fault-type options (SAP's real defect catalog ZI_B_DEFECTCATALOG9) for the
+   * daily-inspection fail step. Fetched whole and grouped by the catalog's own
+   * `group_text` — its grouping is unrelated to the checklist's.
+   */
+  listInspectionDefectOptions() {
     return request<Paginated<InspectionDefectOption> | InspectionDefectOption[]>(
-      `/inspection-defect-options/${query}`,
+      '/inspection-defect-options/?page_size=100',
     );
   },
 

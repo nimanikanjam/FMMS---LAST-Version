@@ -398,15 +398,13 @@ export function InspectionPage() {
   const currentComplete = currentItem ? isItemComplete(currentItem) : false;
   const checklistComplete = items.length > 0 && items.every(isItemComplete);
 
+  // The defect catalog is small and has its own grouping, unrelated to the
+  // checklist's — so it is fetched once, not per checklist item.
   useEffect(() => {
-    if (currentItem?.result !== 'FAIL') {
-      setDefectOptions([]);
-      return;
-    }
     let cancelled = false;
     setDefectOptionsLoading(true);
     api
-      .listInspectionDefectOptions(currentItem.category)
+      .listInspectionDefectOptions()
       .then((page) => {
         if (cancelled) return;
         setDefectOptions(Array.isArray(page) ? page : (page.results ?? []));
@@ -420,7 +418,7 @@ export function InspectionPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentItem?.result, currentItem?.category]);
+  }, []);
 
   const odometerValid = useMemo(() => {
     const odometerValue = Number(odometer);
@@ -1685,6 +1683,7 @@ export function InspectionPage() {
                                 })
                               }
                               getOptionLabel={(option) => option.code_text}
+                              groupBy={(option) => option.group_text}
                               isOptionEqualToValue={(option, val) => option.id === val.id}
                               noOptionsText="موردی یافت نشد"
                               error={Boolean(currentItem.errors.defectOption)}

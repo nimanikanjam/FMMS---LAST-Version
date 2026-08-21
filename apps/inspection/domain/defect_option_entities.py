@@ -1,10 +1,11 @@
 """Domain entity for SAP defect-catalog rows offered during daily inspection.
 
-Distinct from ``apps.fault.domain.catalog_entities.FaultCatalog`` (which is
-synced from the object-part catalog for manual fault reporting) — this one
-is synced from SAP's real defect catalog (``ZI_B_DEFECTCATALOG9_CDS``) so a
+Synced from SAP's real defect catalog (``ZI_B_DEFECTCATALOG9_CDS``) so a
 driver can pick a proper fault type, with severity, while failing a checklist
 item during daily inspection.
+
+``apps.fault.domain.catalog_entities.FaultCatalog`` caches the same SAP view
+for manual fault reporting; this is the daily-inspection copy.
 """
 
 from __future__ import annotations
@@ -22,8 +23,9 @@ class InspectionDefectOption:
         id: Universally unique identifier for this row.
         code_group: SAP ``CodeGroup``.
         code: SAP ``Code``.
-        group_text: SAP ``GroupText`` — matched against a checklist item's
-            category (object-part catalog group text) where possible.
+        group_text: SAP ``GroupText`` — the defect catalog's own grouping,
+            which the UI groups the picker by. Deliberately not matched
+            against the checklist catalog's grouping; the two are unrelated.
         code_text: SAP ``CodeText`` — the fault type label shown to drivers.
         defect_class: SAP ``DefectClass`` — maps to fault severity.
         defect_class_text: SAP ``DefectClassText``.

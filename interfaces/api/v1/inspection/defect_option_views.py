@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -21,30 +21,21 @@ class InspectionDefectOptionViewSet(GenericViewSet):
 
     Used when a driver fails a checklist item — offers a proper SAP fault
     type (with severity) instead of a free-text description.
+
+    The catalog keeps its own grouping, which is unrelated to the checklist
+    catalog's, so the full list is returned and the UI groups it by
+    ``group_text``.
     """
 
     permission_classes = [IsReadOnlyOrDriverOrTechnicianOrAbove]
 
     @extend_schema(
         tags=[API_TAGS.inspection],
-        parameters=[
-            OpenApiParameter(
-                name="category",
-                required=False,
-                type=str,
-                description=(
-                    "Checklist item category (object-part catalog group text). "
-                    "Options are filtered to a matching group_text; if none "
-                    "match, the full active catalog is returned instead."
-                ),
-            ),
-        ],
         responses=InspectionDefectOptionResponseSerializer(many=True),
     )
     def list(self, request: Request) -> Response:
         """List active inspection defect-catalog options."""
         items = deps.get_list_inspection_defect_options_service().execute(
-            category=request.query_params.get("category", "").strip(),
             request_id=request_id_from(request),
         )
         page = paginate_dto_list(self, items)

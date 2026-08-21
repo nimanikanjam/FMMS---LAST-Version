@@ -16,7 +16,7 @@ class TestInspectionDefectOptionsAPI:
     def test_driver_can_list_defect_options_after_sync(
         self, authenticated_client: APIClient
     ) -> None:
-        """A synced defect catalog is readable by DRIVER, with category filtering."""
+        """A synced defect catalog is readable by DRIVER, whole and self-grouped."""
         synced = authenticated_client.post("/api/v1/sap-sync/", {}, format="json")
         assert synced.status_code == 200, synced.data
 
@@ -33,14 +33,18 @@ class TestInspectionDefectOptionsAPI:
             first.keys()
         )
 
-        filtered = client.get(
-            "/api/v1/inspection-defect-options/",
-            {"category": "سیستم ترمز"},
-        )
-        assert filtered.status_code == 200, filtered.data
-        filtered_results = filtered.data.get("results", filtered.data)
-        assert len(filtered_results) > 0
-        assert all(row["group_text"] == "سیستم ترمز" for row in filtered_results)
+        # The defect catalog keeps its own grouping (unrelated to the checklist
+        # catalog's), so the whole catalog comes back — several distinct groups,
+        # including ones with no checklist counterpart.
+        full = client.get("/api/v1/inspection-defect-options/", {"page_size": 100})
+        assert full.status_code == 200, full.data
+        rows = full.data.get("results", full.data)
+        groups = {row["group_text"] for row in rows}
+        assert len(groups) > 1
+        assert "سیستم ترمز" in groups
+        assert "لاستیک و چرخ" in groups
+        # Ordered by the catalog's own group text, so the UI can group by it.
+        assert [r["group_text"] for r in rows] == sorted(r["group_text"] for r in rows)
 
     def test_viewer_cannot_see_defect_options_when_none_synced(
         self, viewer_client: APIClient

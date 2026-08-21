@@ -1,9 +1,15 @@
 """Services for listing and syncing SAP defect-catalog rows for daily inspection.
 
-Distinct from ``apps.fault``'s fault-catalog sync (which now reads the
-object-part catalog for manual fault reporting) — this syncs SAP's real
-defect catalog (with ``DefectClass``/severity), offered as fault-type
-options while a driver fails a checklist item during daily inspection.
+Syncs SAP's real defect catalog ``ZI_B_DEFECTCATALOG9_CDS`` (with
+``DefectClass``/severity), offered as fault-type options while a driver
+fails a checklist item during daily inspection.
+
+``apps.fault``'s fault-catalog sync reads the same SAP view for manual
+fault reporting, but keeps its own local cache and lifecycle.
+
+The checklist itself comes from a different SAP view
+(``ZI_FLEET_CAT_B_CDS``, see ``sync_inspection_templates_from_sap_service``)
+with its own unrelated grouping, so the two catalogs are never cross-filtered.
 """
 
 from __future__ import annotations
@@ -43,25 +49,22 @@ def _to_response_dto(option: InspectionDefectOption) -> InspectionDefectOptionRe
 
 
 class ListInspectionDefectOptionsService:
-    """Return active defect-catalog options for the daily-inspection fault picker.
+    """Return the active defect catalog for the daily-inspection fault picker.
 
-    When ``category`` is given, options are filtered to a matching
-    ``group_text`` first; if nothing matches (the two SAP catalogs don't
-    share group text for that category), the full active list is returned
-    instead of an empty result, so the driver is never blocked from
-    reporting a fault.
+    The defect catalog (``ZI_B_DEFECTCATALOG9_CDS``) carries its own
+    grouping, which does not line up with the checklist catalog's
+    (``ZI_FLEET_CAT_B_CDS``) — different code groups, different group
+    texts, and defect groups such as tyres or general safety that have no
+    checklist counterpart at all. So the two taxonomies are kept separate:
+    the full catalog is returned, ordered by its own ``group_text``, and
+    the UI groups the picker by that same field.
     """
 
     def __init__(self, option_repository: IInspectionDefectOptionRepository) -> None:
         self._repo = option_repository
 
-    def execute(
-        self,
-        *,
-        category: str = "",
-        request_id: str = "",
-    ) -> list[InspectionDefectOptionResponseDTO]:
-        """List active defect options, best-effort filtered by category."""
+    def execute(self, *, request_id: str = "") -> list[InspectionDefectOptionResponseDTO]:
+        """List every active defect option, ordered by its own group text."""
         logger.info(
             "Listing inspection defect options",
             extra={
@@ -69,13 +72,9 @@ class ListInspectionDefectOptionsService:
                 "service": "ListInspectionDefectOptionsService",
                 "operation": "execute",
                 "request_id": request_id,
-                "category": category,
             },
         )
-        rows = self._repo.list_active(group_text=category) if category else []
-        if not rows:
-            rows = self._repo.list_active()
-        return [_to_response_dto(row) for row in rows]
+        return [_to_response_dto(row) for row in self._repo.list_active()]
 
 
 class SyncInspectionDefectOptionsFromSAPService:

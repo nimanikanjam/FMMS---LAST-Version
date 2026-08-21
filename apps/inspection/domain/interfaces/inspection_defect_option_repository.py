@@ -20,8 +20,8 @@ class IInspectionDefectOptionRepository(ABC):
         """Retrieve one row by SAP ``Code`` and ``CodeGroup``."""
 
     @abstractmethod
-    def list_active(self, *, group_text: str = "") -> list[InspectionDefectOption]:
-        """Return active rows, optionally filtered by exact ``group_text``."""
+    def list_active(self) -> list[InspectionDefectOption]:
+        """Return active rows ordered by the catalog's own group text, then code."""
 
     @abstractmethod
     def save(self, option: InspectionDefectOption) -> InspectionDefectOption:
