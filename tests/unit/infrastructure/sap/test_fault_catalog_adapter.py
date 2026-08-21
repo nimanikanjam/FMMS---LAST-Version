@@ -11,15 +11,26 @@ from infrastructure.sap.client.mock.mock_client import MockSAPClient, SAPMockSce
 class TestFaultCatalogODataAdapter:
     """Cover XML-backed SAP fault catalog reads.
 
-    ``FaultCatalogODataAdapter``'s default service now points at the object-
-    part catalog (manual fault reporting reuses that source — see
-    ``sync_fault_catalog_from_sap_service``), which carries no DefectClass
-    columns. The real defect catalog (with DefectClass/severity) is still
-    read through this same adapter class, just with an explicit
-    ``ZI_B_DEFECTCATALOG9_CDS`` service — the way
-    ``sync_inspection_defect_options_from_sap_service`` uses it for the
-    daily-inspection fault-type picker. These tests exercise that path.
+    The adapter reads SAP's real defect catalog ``ZI_B_DEFECTCATALOG9_CDS``
+    — the faults a part can have, carrying DefectClass/severity — for both
+    manual fault reporting and the daily-inspection fault-type picker.
     """
+
+    def test_defaults_to_the_real_defect_catalog_not_the_part_catalog(self) -> None:
+        """Regression: defaulting to ZI_FLEET_CAT_B_CDS listed parts, not faults.
+
+        That view names the parts themselves ("ترمز جلو") and has no
+        DefectClass column, so every reported fault silently fell back to
+        LOW severity and drivers never saw the real defect list.
+        """
+        adapter = FaultCatalogODataAdapter(MockSAPClient(scenario=SAPMockScenario.SUCCESS))
+
+        result = adapter.list_defect_codes()
+
+        code_texts = {item.code_text for item in result}
+        assert "ترمز ضعیف" in code_texts
+        assert "ترمز جلو" not in code_texts
+        assert all(item.defect_class for item in result)
 
     def test_reads_fault_catalog_from_xml_fixture(self) -> None:
         client = MockSAPClient(scenario=SAPMockScenario.SUCCESS)

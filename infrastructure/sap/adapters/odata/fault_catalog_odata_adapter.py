@@ -13,10 +13,11 @@ from infrastructure.sap.client.base import ISAPClient, SAPClientError
 
 logger = logging.getLogger(__name__)
 
-# Same CDS view manual fault reporting shares with the daily-inspection
-# object-part catalog (see ObjectPartCatalogODataAdapter). It carries no
-# DefectClass/DefectClassText columns, so those DTO fields come back empty.
-_SERVICE = "ZI_FLEET_CAT_B_CDS"
+# SAP's real defect catalog: the faults a part can have ("ترمز ضعیف"),
+# with DefectClass/DefectClassText driving severity. Distinct from the
+# object-part catalog (see ObjectPartCatalogODataAdapter), which lists the
+# parts themselves ("ترمز جلو") and carries no DefectClass columns.
+_SERVICE = "ZI_B_DEFECTCATALOG9_CDS"
 _DEFAULT_ENTITY_SET = ""
 
 
