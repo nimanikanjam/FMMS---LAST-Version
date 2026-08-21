@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
-import xml.etree.ElementTree as ET
 from typing import Any
 
 from apps.integration.domain.exceptions import SAPIntegrationError
 from core.sap.dtos.object_part_catalog import SAPObjectPartDTO
 from core.sap.ports.object_part_catalog_port import ISAPObjectPartCatalogPort
+from infrastructure.sap.adapters.odata.simple_table_xml import (
+    parse_simple_table_xml,
+)
 from infrastructure.sap.client.base import ISAPClient, SAPClientError
 
 logger = logging.getLogger(__name__)
@@ -125,7 +127,7 @@ class ObjectPartCatalogODataAdapter(ISAPObjectPartCatalogPort):
             ) from exc
         return [
             self._map_xml_row(item, catalog_type)
-            for item in _parse_simple_table_xml(xml_text)
+            for item in parse_simple_table_xml(xml_text)
         ]
 
     @staticmethod
@@ -148,23 +150,3 @@ class ObjectPartCatalogODataAdapter(ISAPObjectPartCatalogPort):
             group_text=str(data.get("GroupText", "")).strip(),
             code_text=str(data.get("CodeText", "")).strip(),
         )
-
-
-def _parse_simple_table_xml(xml_text: str) -> list[dict[str, str]]:
-    """Parse SAP XML shaped as ``Root/Columns/Rows`` into dictionaries."""
-    root = ET.fromstring(xml_text)  # noqa: S314
-    columns = [
-        str(column.attrib.get("Name", "")).strip()
-        for column in root.findall("./Columns/Column")
-    ]
-    rows: list[dict[str, str]] = []
-    for row in root.findall("./Rows/Row"):
-        values = [value.text or "" for value in row.findall("./Value")]
-        rows.append(
-            {
-                column: values[index].strip() if index < len(values) else ""
-                for index, column in enumerate(columns)
-                if column
-            }
-        )
-    return rows

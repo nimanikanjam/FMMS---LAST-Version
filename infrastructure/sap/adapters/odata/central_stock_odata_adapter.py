@@ -6,13 +6,15 @@ Reads stock from SAP CDS ``ZI_STOCK_KH08_CDS`` (storage location KH08).
 from __future__ import annotations
 
 import logging
-import xml.etree.ElementTree as ET
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from apps.integration.domain.exceptions import SAPIntegrationError
 from core.sap.dtos.central_stock import SAPCentralStockDTO
 from core.sap.ports.central_stock_port import ISAPCentralStockPort
+from infrastructure.sap.adapters.odata.simple_table_xml import (
+    parse_simple_table_xml,
+)
 from infrastructure.sap.client.base import ISAPClient, SAPClientError
 
 logger = logging.getLogger(__name__)
@@ -63,7 +65,7 @@ class CentralStockODataAdapter(ISAPCentralStockPort):
                 f"Failed to list central warehouse stock: {exc}"
             ) from exc
 
-        rows = [self._map_single(item) for item in _parse_simple_table_xml(xml_text)]
+        rows = [self._map_single(item) for item in parse_simple_table_xml(xml_text)]
         return _deduplicate_stock_rows(rows)
 
     @staticmethod
@@ -179,62 +181,3 @@ def _to_decimal(raw: Any) -> Decimal:
         return Decimal(text)
     except InvalidOperation:
         return Decimal("0")
-
-
-def _parse_simple_table_xml(xml_text: str) -> list[dict[str, str]]:
-    """Parse legacy table XML or a standard OData v2 Atom feed.
-
-    SAP's mock/export fixtures use ``Root/Columns/Rows`` while the live
-    Gateway returns ``feed/entry/content/m:properties``. Supporting both
-    formats keeps local fixtures backward-compatible with the real service.
-    """
-    root = ET.fromstring(xml_text)  # noqa: S314
-
-    if _local_name(root.tag) == "feed":
-        return _parse_atom_feed(root)
-
-    columns = [
-        str(column.attrib.get("Name", "")).strip()
-        for column in root.findall("./Columns/Column")
-    ]
-    rows: list[dict[str, str]] = []
-    for row in root.findall("./Rows/Row"):
-        values = [value.text or "" for value in row.findall("./Value")]
-        rows.append(
-            {
-                column: values[index].strip() if index < len(values) else ""
-                for index, column in enumerate(columns)
-                if column
-            }
-        )
-    return rows
-
-
-def _parse_atom_feed(root: ET.Element) -> list[dict[str, str]]:
-    """Map OData Atom entries to property dictionaries."""
-    rows: list[dict[str, str]] = []
-    for entry in root.iter():
-        if _local_name(entry.tag) != "entry":
-            continue
-        properties = next(
-            (
-                element
-                for element in entry.iter()
-                if _local_name(element.tag) == "properties"
-            ),
-            None,
-        )
-        if properties is None:
-            continue
-        rows.append(
-            {
-                _local_name(property_element.tag): (property_element.text or "").strip()
-                for property_element in properties
-            }
-        )
-    return rows
-
-
-def _local_name(tag: str) -> str:
-    """Return an XML tag without its namespace."""
-    return tag.rsplit("}", 1)[-1]
