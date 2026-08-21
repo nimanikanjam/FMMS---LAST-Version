@@ -514,8 +514,15 @@ export function CentralWorkshopPage() {
 
   const startEditActivity = (activity: NonNullable<RepairOrder['activities']>[number]) => {
     setEditingActivityId(activity.id);
+    // Match on the full SAP natural key, not the code alone. Activities
+    // recorded before the catalog carry no code, so the picker stays empty
+    // and the technician must choose one to save the edit.
     setActivityOption(
-      activityOptions.find((option) => option.code === activity.activity_code) ?? null,
+      activityOptions.find(
+        (option) =>
+          option.code === activity.activity_code &&
+          option.code_group === activity.activity_code_group,
+      ) ?? null,
     );
     setActivityHours(String(activity.labor_hours));
     setActivityNotes(activity.notes || '');
@@ -797,6 +804,12 @@ export function CentralWorkshopPage() {
                           </Button>
                         ) : null}
                       </Stack>
+                      {editingActivityId && !activityOption ? (
+                        <Alert severity="info" sx={{ py: 0.25 }}>
+                          این فعالیت پیش از اتصال به کاتالوگ SAP ثبت شده است. برای
+                          ذخیرهٔ ویرایش، شرح فعالیت را از فهرست انتخاب کنید.
+                        </Alert>
+                      ) : null}
                       <RtlTextField
                         fullWidth
                         label="یادداشت"
