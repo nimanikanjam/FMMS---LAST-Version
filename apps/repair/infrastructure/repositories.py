@@ -71,6 +71,8 @@ def _to_domain(
             performed_by_id=a.performed_by_id,
             performed_at=a.performed_at,
             notes=a.notes or None,
+            activity_code=a.activity_code,
+            activity_code_group=a.activity_code_group,
         )
         for a in activities
     ]
@@ -263,6 +265,8 @@ class DjangoRepairOrderRepository(IRepairOrderRepository):
                         performed_by_id=a.performed_by_id,
                         performed_at=a.performed_at,
                         notes=a.notes or "",
+                        activity_code=a.activity_code,
+                        activity_code_group=a.activity_code_group,
                     )
                     for a in order.activities
                 ]

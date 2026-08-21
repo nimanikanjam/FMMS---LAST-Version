@@ -244,9 +244,20 @@ class TransportHandoverRejectSerializer(serializers.Serializer):
 
 
 class RepairActivityCreateSerializer(serializers.Serializer):
-    """Validate repair activity creation input."""
+    """Validate repair activity creation input.
 
-    description = serializers.CharField(max_length=500)
+    The activity itself is picked from SAP's activity catalog
+    (``ZC_REPAIR01_CODE_CDS``), so ``activity_code`` is required and the
+    stored label is resolved from the catalog server-side. ``description`` is
+    accepted but ignored whenever a code is given; ``notes`` carries any
+    free-text detail about the particular job.
+    """
+
+    activity_code = serializers.CharField(max_length=40)
+    activity_code_group = serializers.CharField(max_length=40)
+    description = serializers.CharField(
+        max_length=500, required=False, allow_blank=True, default=""
+    )
     labor_hours = serializers.DecimalField(max_digits=8, decimal_places=2)
     performed_by_id = serializers.UUIDField(required=False)
     performed_at = serializers.DateTimeField(required=False)
@@ -281,6 +292,8 @@ class RepairActivityResponseSerializer(serializers.Serializer):
     performed_by_id = serializers.UUIDField()
     performed_at = serializers.DateTimeField()
     notes = serializers.CharField(allow_null=True)
+    activity_code = serializers.CharField()
+    activity_code_group = serializers.CharField()
 
 
 class RepairPartResponseSerializer(serializers.Serializer):

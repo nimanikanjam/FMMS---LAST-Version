@@ -70,6 +70,10 @@ class RepairActivityModel(models.Model):
         db_index=True,
     )
     activity_id = models.UUIDField()
+    # SAP activity-catalog key (ZC_REPAIR01_CODE_CDS). Blank on activities
+    # recorded before the catalog was introduced.
+    activity_code = models.CharField(max_length=40, blank=True, default="", db_index=True)
+    activity_code_group = models.CharField(max_length=40, blank=True, default="")
     description = models.CharField(max_length=500)
     labor_hours = models.DecimalField(max_digits=6, decimal_places=2)
     performed_by_id = models.UUIDField()
@@ -321,3 +325,40 @@ class ExternalRepairReviewModel(BusinessRecordModel):
     class Meta:
         app_label = "repair"
         db_table = "external_repair_review"
+
+
+class RepairActivityOptionModel(BusinessRecordModel):
+    """Local cache of SAP's activity catalog (type "A").
+
+    Offered as the pick-list when a technician records the work performed on
+    a repair order.
+    """
+
+    catalog_type = models.CharField(max_length=10, db_index=True)
+    code_group = models.CharField(max_length=40, db_index=True)
+    code = models.CharField(max_length=40, db_index=True)
+    code_text = models.CharField(max_length=500)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        app_label = "repair"
+        db_table = "repair_activity_option"
+        verbose_name = "Repair Activity Option"
+        verbose_name_plural = "Repair Activity Options"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["code", "code_group"],
+                condition=models.Q(is_deleted=False),
+                name="unique_active_repair_activity_option_sap_key",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["is_active", "is_deleted"],
+                name="repair_act_opt_active_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        """Return the SAP code and its label."""
+        return f"{self.code} — {self.code_text}"

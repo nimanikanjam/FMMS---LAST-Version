@@ -56,6 +56,8 @@ def _to_response_dto(order: RepairOrder) -> RepairOrderResponseDTO:
                 performed_by_id=a.performed_by_id,
                 performed_at=a.performed_at,
                 notes=a.notes,
+                activity_code=a.activity_code,
+                activity_code_group=a.activity_code_group,
             )
             for a in order.activities
         ],

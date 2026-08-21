@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from rest_framework.test import APIClient
 
+from interfaces.api.v1 import deps
 from tests.integration.api.conftest import create_repair_order_via_distribution
 
 pytestmark = pytest.mark.django_db
@@ -66,30 +67,53 @@ class TestRepairAPI:
         assert started.status_code == 200, started.data
         assert started.data["status"] == "IN_PROGRESS"
 
+        # Activities are picked from SAP's activity catalog, so it must be
+        # populated before any work can be recorded against the order. Only
+        # that one catalog is synced — a full SAP sync would also re-import
+        # vehicles and move this vehicle out of the state this flow needs.
+        deps.get_sync_repair_activity_options_from_sap_service().execute()
+
         with_activity = authenticated_client.post(
             f"/api/v1/repair-orders/{order_id}/activities/",
             {
-                "description": "Inspected engine bay",
+                "activity_code": "0001",
+                "activity_code_group": "REPAIR01",
                 "labor_hours": "1.50",
             },
             format="json",
         )
         assert with_activity.status_code == 200, with_activity.data
         assert len(with_activity.data["activities"]) == 1
-        activity_id = with_activity.data["activities"][0]["id"]
+        activity = with_activity.data["activities"][0]
+        activity_id = activity["id"]
+        # The label is resolved from the catalog, not taken from the client.
+        assert activity["description"] == "تعويض روغن"
+        assert activity["activity_code"] == "0001"
 
         edited_activity = authenticated_client.patch(
             f"/api/v1/repair-orders/{order_id}/activities/{activity_id}/",
             {
-                "description": "Replaced alternator",
+                "activity_code": "0005",
+                "activity_code_group": "REPAIR01",
                 "labor_hours": "3.00",
                 "notes": "Bench tested",
             },
             format="json",
         )
         assert edited_activity.status_code == 200, edited_activity.data
-        assert edited_activity.data["activities"][0]["description"] == "Replaced alternator"
+        assert edited_activity.data["activities"][0]["description"] == "تعويض تسمه تايم"
         assert edited_activity.data["activities"][0]["labor_hours"] == "3.00"
+
+        rejected = authenticated_client.post(
+            f"/api/v1/repair-orders/{order_id}/activities/",
+            {
+                "activity_code": "9999",
+                "activity_code_group": "REPAIR01",
+                "labor_hours": "1.00",
+            },
+            format="json",
+        )
+        assert rejected.status_code == 422, rejected.data
 
         deleted_activity = authenticated_client.delete(
             f"/api/v1/repair-orders/{order_id}/activities/{activity_id}/",

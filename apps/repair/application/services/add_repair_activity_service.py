@@ -20,12 +20,41 @@ from apps.repair.application.services.create_repair_order_service import (
     _to_response_dto,
 )
 from apps.repair.domain.entities import RepairActivity, RepairPart
+from apps.repair.domain.exceptions import RepairActivityCodeNotInCatalogError
+from apps.repair.domain.interfaces.repair_activity_option_repository import (
+    IRepairActivityOptionRepository,
+)
 from apps.repair.domain.interfaces.repair_repository import IRepairOrderRepository
 from apps.repair.domain.value_objects import LaborHours, PartQuantity
 from core.exceptions.translation import load_or_not_found
 from core.logging.structured_logger import get_structured_logger
 
 logger = get_structured_logger("repair", __name__)
+
+
+def _resolve_catalog_label(
+    option_repository: IRepairActivityOptionRepository | None,
+    code: str,
+    code_group: str,
+    fallback: str,
+) -> str:
+    """Return the SAP catalog label for ``code``, or ``fallback`` if no code.
+
+    Resolving the label server-side keeps the stored description in step with
+    the SAP code, so a client cannot pair a code with a mismatched label.
+
+    Raises:
+        RepairActivityCodeNotInCatalogError: If ``code`` is not in the
+            active catalog.
+    """
+    if not code:
+        return fallback
+    if option_repository is None:
+        return fallback
+    option = option_repository.get_by_sap_key(code, code_group)
+    if option is None or not option.is_active:
+        raise RepairActivityCodeNotInCatalogError(code, code_group)
+    return option.code_text
 
 
 class AddRepairActivityService:
@@ -35,8 +64,13 @@ class AddRepairActivityService:
         repair_order_repository: Concrete ``IRepairOrderRepository``.
     """
 
-    def __init__(self, repair_order_repository: IRepairOrderRepository) -> None:
+    def __init__(
+        self,
+        repair_order_repository: IRepairOrderRepository,
+        activity_option_repository: IRepairActivityOptionRepository | None = None,
+    ) -> None:
         self._repo = repair_order_repository
+        self._options = activity_option_repository
 
     def execute(self, dto: AddRepairActivityDTO) -> RepairOrderResponseDTO:
         """Add a repair activity to a mutable repair order.
@@ -70,11 +104,18 @@ class AddRepairActivityService:
 
         activity = RepairActivity(
             id=uuid.uuid4(),
-            description=dto.description,
+            description=_resolve_catalog_label(
+                self._options,
+                dto.activity_code,
+                dto.activity_code_group,
+                dto.description,
+            ),
             labor_hours=LaborHours(hours=dto.labor_hours),
             performed_by_id=dto.performed_by_id,
             performed_at=dto.performed_at,
             notes=dto.notes,
+            activity_code=dto.activity_code,
+            activity_code_group=dto.activity_code_group,
         )
 
         order.add_activity(activity)
@@ -100,8 +141,13 @@ class AddRepairActivityService:
 class UpdateRepairActivityService:
     """Orchestrates editing a repair activity on a mutable order."""
 
-    def __init__(self, repair_order_repository: IRepairOrderRepository) -> None:
+    def __init__(
+        self,
+        repair_order_repository: IRepairOrderRepository,
+        activity_option_repository: IRepairActivityOptionRepository | None = None,
+    ) -> None:
         self._repo = repair_order_repository
+        self._options = activity_option_repository
 
     def execute(self, dto: UpdateRepairActivityDTO) -> RepairOrderResponseDTO:
         """Update an existing repair activity."""
@@ -124,9 +170,16 @@ class UpdateRepairActivityService:
         )
         order.update_activity(
             dto.activity_id,
-            description=dto.description,
+            description=_resolve_catalog_label(
+                self._options,
+                dto.activity_code,
+                dto.activity_code_group,
+                dto.description,
+            ),
             labor_hours=LaborHours(hours=dto.labor_hours),
             notes=dto.notes,
+            activity_code=dto.activity_code,
+            activity_code_group=dto.activity_code_group,
         )
         order.updated_at = datetime.now(tz=UTC)
         saved = self._repo.save(order)

@@ -361,10 +361,26 @@ export interface RepairPart {
 
 export interface RepairActivity {
   id: string;
+  /** Label of the work done — resolved server-side from the SAP activity catalog. */
   description: string;
   labor_hours: string | number;
   performed_at: string;
   notes?: string | null;
+  /** SAP activity code (ZC_REPAIR01_CODE). Blank on pre-catalog activities. */
+  activity_code?: string;
+  activity_code_group?: string;
+}
+
+/** SAP's activity catalog (ZC_REPAIR01_CODE, type "A") — the jobs a workshop can record. */
+export interface RepairActivityOption {
+  id: string;
+  catalog_type: string;
+  code_group: string;
+  code: string;
+  code_text: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export type SAPTransactionStatus =

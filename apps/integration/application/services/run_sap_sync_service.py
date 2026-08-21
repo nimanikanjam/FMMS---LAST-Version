@@ -23,6 +23,9 @@ from apps.integration.infrastructure.models import SAPSyncRunItemModel, SAPSyncR
 from apps.material.application.services.sync_central_stock_from_sap_service import (
     SyncCentralStockFromSAPService,
 )
+from apps.repair.application.services.sync_repair_activity_options_from_sap_service import (
+    SyncRepairActivityOptionsFromSAPService,
+)
 from apps.vehicle.application.services.sync_vehicles_from_sap_service import (
     SyncVehiclesFromSAPService,
 )
@@ -75,6 +78,8 @@ class RunSAPSyncService:
         fault_catalog_sync_service: Imports fault catalog rows from SAP.
         inspection_defect_option_sync_service: Imports the real SAP defect
             catalog used as fault-type options during daily inspection.
+        repair_activity_option_sync_service: Imports SAP's activity catalog
+            used as the work picker when recording repair activities.
         central_stock_sync_service: Imports central warehouse stock from SAP.
     """
 
@@ -84,12 +89,14 @@ class RunSAPSyncService:
         inspection_template_sync_service: SyncInspectionTemplatesFromSAPService,
         fault_catalog_sync_service: SyncFaultCatalogFromSAPService,
         inspection_defect_option_sync_service: SyncInspectionDefectOptionsFromSAPService,
+        repair_activity_option_sync_service: SyncRepairActivityOptionsFromSAPService,
         central_stock_sync_service: SyncCentralStockFromSAPService,
     ) -> None:
         self._vehicle_sync_service = vehicle_sync_service
         self._inspection_template_sync_service = inspection_template_sync_service
         self._fault_catalog_sync_service = fault_catalog_sync_service
         self._inspection_defect_option_sync_service = inspection_defect_option_sync_service
+        self._repair_activity_option_sync_service = repair_activity_option_sync_service
         self._central_stock_sync_service = central_stock_sync_service
 
     def execute(
@@ -153,6 +160,13 @@ class RunSAPSyncService:
                 sync_run=sync_run,
                 name="inspection_defect_options",
                 sync=lambda: self._inspection_defect_option_sync_service.execute(
+                    request_id=request_id
+                ),
+            ),
+            self._run_item(
+                sync_run=sync_run,
+                name="repair_activity_options",
+                sync=lambda: self._repair_activity_option_sync_service.execute(
                     request_id=request_id
                 ),
             ),

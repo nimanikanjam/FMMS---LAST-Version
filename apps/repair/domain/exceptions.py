@@ -68,6 +68,23 @@ class RepairActivityNotFoundError(RepairDomainError, DomainNotFoundError):
         self.activity_id = activity_id
 
 
+class RepairActivityCodeNotInCatalogError(RepairDomainError, DomainStateError):
+    """Raised when a recorded activity code is not in the active SAP catalog.
+
+    Args:
+        code: The SAP activity ``Code`` that was supplied.
+        code_group: The SAP activity ``CodeGroup`` that was supplied.
+    """
+
+    def __init__(self, code: object, code_group: object) -> None:
+        super().__init__(
+            f"Repair activity code '{code}'/'{code_group}' is not in the "
+            f"active SAP activity catalog."
+        )
+        self.code = code
+        self.code_group = code_group
+
+
 class ExternalRepairInvoiceNotFoundError(RepairDomainError, DomainNotFoundError):
     """Raised when an external repair invoice cannot be located."""
 

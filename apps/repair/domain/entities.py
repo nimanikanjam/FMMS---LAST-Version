@@ -205,11 +205,15 @@ class RepairActivity:
 
     Attributes:
         id: Unique identifier for this activity.
-        description: Description of the work performed.
+        description: Label of the work performed — the SAP activity's
+            ``CodeText`` when picked from the catalog.
         labor_hours: Hours spent on this activity.
         performed_by_id: UUID of the technician who performed the activity.
         performed_at: UTC timestamp when the activity was completed.
-        notes: Optional additional notes.
+        notes: Optional free-text detail about this particular job.
+        activity_code: SAP activity ``Code`` (``ZC_REPAIR01_CODE_CDS``).
+            Blank on activities recorded before the catalog was introduced.
+        activity_code_group: SAP activity ``CodeGroup``.
     """
 
     id: uuid.UUID
@@ -218,6 +222,8 @@ class RepairActivity:
     performed_by_id: uuid.UUID
     performed_at: datetime
     notes: str | None = field(default=None)
+    activity_code: str = field(default="")
+    activity_code_group: str = field(default="")
 
 
 @dataclass
@@ -595,6 +601,8 @@ class RepairOrder:
         description: str,
         labor_hours: LaborHours,
         notes: str | None,
+        activity_code: str = "",
+        activity_code_group: str = "",
     ) -> None:
         """Update an existing repair activity on a mutable order."""
         self._assert_mutable("update_activity")
@@ -603,6 +611,8 @@ class RepairOrder:
                 activity.description = description
                 activity.labor_hours = labor_hours
                 activity.notes = notes
+                activity.activity_code = activity_code
+                activity.activity_code_group = activity_code_group
                 return
         raise RepairActivityNotFoundError(activity_id)
 

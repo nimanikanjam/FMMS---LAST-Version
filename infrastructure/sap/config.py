@@ -37,6 +37,10 @@ Optional environment variables:
         is reporting a failed daily-inspection item
         (default: ZI_B_DEFECTCATALOG9_CDS)
     SAP_INSPECTION_DEFECT_CATALOG_ENTITY_SET — entity set (default: empty)
+    SAP_REPAIR_ACTIVITY_CATALOG_SERVICE — SAP activity catalog (type "A"),
+        the standard jobs a workshop performs, picked when recording work on
+        a repair order (default: ZC_REPAIR01_CODE_CDS)
+    SAP_REPAIR_ACTIVITY_CATALOG_ENTITY_SET — entity set (default: empty)
     SAP_CENTRAL_STOCK_SERVICE    — Central warehouse stock OData service
         (default: ZI_STOCK_KH08_CDS)
     SAP_CENTRAL_STOCK_ENTITY_SET — Central stock entity set (default: empty)
@@ -89,6 +93,8 @@ class SAPConfig:
     fault_catalog_entity_set: str
     inspection_defect_catalog_service: str
     inspection_defect_catalog_entity_set: str
+    repair_activity_catalog_service: str
+    repair_activity_catalog_entity_set: str
     central_stock_service: str
     central_stock_entity_set: str
 
@@ -154,6 +160,14 @@ class SAPConfig:
             "SAP_INSPECTION_DEFECT_CATALOG_ENTITY_SET",
             "",
         )
+        repair_activity_catalog_service = os.environ.get(
+            "SAP_REPAIR_ACTIVITY_CATALOG_SERVICE",
+            "ZC_REPAIR01_CODE_CDS",
+        )
+        repair_activity_catalog_entity_set = os.environ.get(
+            "SAP_REPAIR_ACTIVITY_CATALOG_ENTITY_SET",
+            "",
+        )
         central_stock_service = os.environ.get(
             "SAP_CENTRAL_STOCK_SERVICE",
             "ZI_STOCK_KH08_CDS",
@@ -209,6 +223,8 @@ class SAPConfig:
             fault_catalog_entity_set=fault_catalog_entity_set,
             inspection_defect_catalog_service=inspection_defect_catalog_service,
             inspection_defect_catalog_entity_set=inspection_defect_catalog_entity_set,
+            repair_activity_catalog_service=repair_activity_catalog_service,
+            repair_activity_catalog_entity_set=repair_activity_catalog_entity_set,
             central_stock_service=central_stock_service,
             central_stock_entity_set=central_stock_entity_set,
         )

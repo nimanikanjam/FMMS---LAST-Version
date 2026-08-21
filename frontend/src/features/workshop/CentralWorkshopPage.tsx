@@ -36,12 +36,18 @@ import {
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, ErrorState } from '../../components/States';
 import { PlainStatusBadge, VehicleStatusBadge } from '../../components/StatusBadge';
+import { RtlAutocomplete } from '../../components/RtlAutocomplete';
 import { RtlDataTable, type RtlDataTableColumn } from '../../components/RtlDataTable';
 import { RtlSelectField } from '../../components/RtlSelectField';
 import { RtlTextField } from '../../components/RtlTextField';
 import { StatusFilterTabs, type StatusTabOption } from '../../components/StatusFilterTabs';
 import { TabbedDetailModal } from '../../components/TabbedDetailModal';
-import type { Fault, RepairOrder, Vehicle } from '../../types/fmms';
+import type {
+  Fault,
+  RepairActivityOption,
+  RepairOrder,
+  Vehicle,
+} from '../../types/fmms';
 import { formatDateTime, toFaNumber } from '../../utils/format';
 
 type PartLineDraft = {
@@ -202,7 +208,11 @@ export function CentralWorkshopPage() {
   const [consumedPart, setConsumedPart] = useState<MaterialPickValue>(EMPTY_MATERIAL_PICK);
   const [consumedQty, setConsumedQty] = useState('1');
   const [consumedLines, setConsumedLines] = useState<PartLineDraft[]>([]);
-  const [activityDescription, setActivityDescription] = useState('');
+  const [activityOption, setActivityOption] = useState<RepairActivityOption | null>(
+    null,
+  );
+  const [activityOptions, setActivityOptions] = useState<RepairActivityOption[]>([]);
+  const [activityOptionsLoading, setActivityOptionsLoading] = useState(false);
   const [activityHours, setActivityHours] = useState('');
   const [activityNotes, setActivityNotes] = useState('');
   const [editingActivityId, setEditingActivityId] = useState('');
@@ -258,6 +268,28 @@ export function CentralWorkshopPage() {
     void load();
   }, [load]);
 
+  // SAP's activity catalog is small and order-independent, so it is fetched
+  // once for the page rather than per repair order.
+  useEffect(() => {
+    let cancelled = false;
+    setActivityOptionsLoading(true);
+    api
+      .listRepairActivityOptions()
+      .then((page) => {
+        if (cancelled) return;
+        setActivityOptions(Array.isArray(page) ? page : (page.results ?? []));
+      })
+      .catch(() => {
+        if (!cancelled) setActivityOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setActivityOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const refreshKpis = useCallback(async () => {
     try {
       const statuses = [
@@ -299,7 +331,7 @@ export function CentralWorkshopPage() {
     setSuccess('');
     setDecisionNote('');
     setEstimatedDeliveryAt('');
-    setActivityDescription('');
+    setActivityOption(null);
     setActivityHours('');
     setActivityNotes('');
     setEditingActivityId('');
@@ -447,14 +479,14 @@ export function CentralWorkshopPage() {
 
   const recordActivity = async () => {
     if (!selected) return;
-    const description = activityDescription.trim();
     const hours = Number(activityHours);
-    if (!description || !Number.isFinite(hours) || hours <= 0) return;
+    if (!activityOption || !Number.isFinite(hours) || hours <= 0) return;
     setActionLoading('activity');
     setActionError('');
     try {
       const payload = {
-        description,
+        activity_code: activityOption.code,
+        activity_code_group: activityOption.code_group,
         labor_hours: activityHours,
         notes: activityNotes.trim() || undefined,
       };
@@ -463,7 +495,7 @@ export function CentralWorkshopPage() {
       } else {
         await api.addRepairActivity(selected.id, payload);
       }
-      setActivityDescription('');
+      setActivityOption(null);
       setActivityHours('');
       setActivityNotes('');
       setEditingActivityId('');
@@ -482,7 +514,9 @@ export function CentralWorkshopPage() {
 
   const startEditActivity = (activity: NonNullable<RepairOrder['activities']>[number]) => {
     setEditingActivityId(activity.id);
-    setActivityDescription(activity.description);
+    setActivityOption(
+      activityOptions.find((option) => option.code === activity.activity_code) ?? null,
+    );
     setActivityHours(String(activity.labor_hours));
     setActivityNotes(activity.notes || '');
     setActionError('');
@@ -490,7 +524,7 @@ export function CentralWorkshopPage() {
 
   const cancelEditActivity = () => {
     setEditingActivityId('');
-    setActivityDescription('');
+    setActivityOption(null);
     setActivityHours('');
     setActivityNotes('');
   };
@@ -593,7 +627,7 @@ export function CentralWorkshopPage() {
   const canRecordActivity = canEdit && detail?.order.status === 'IN_PROGRESS';
   const canSubmitConsumed = consumedLines.length > 0;
   const canSubmitActivity =
-    activityDescription.trim().length > 0 &&
+    activityOption !== null &&
     Number.isFinite(Number(activityHours)) &&
     Number(activityHours) > 0;
 
@@ -721,12 +755,16 @@ export function CentralWorkshopPage() {
                         useFlexGap
                         alignItems="flex-start"
                       >
-                        <RtlTextField
+                        <RtlAutocomplete
                           label="شرح فعالیت"
-                          value={activityDescription}
-                          onChange={(event) => setActivityDescription(event.target.value)}
+                          options={activityOptions}
+                          loading={activityOptionsLoading}
+                          value={activityOption}
+                          onChange={(_, next) => setActivityOption(next)}
+                          getOptionLabel={(option) => option.code_text}
+                          isOptionEqualToValue={(option, val) => option.id === val.id}
+                          noOptionsText="موردی یافت نشد"
                           size="small"
-                          placeholder="مثلا تعویض دینام"
                           sx={{ flex: 1, minWidth: { xs: '100%', sm: 280 } }}
                         />
                         <RtlTextField

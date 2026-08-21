@@ -483,6 +483,8 @@ class RepairOrderViewSet(
                 performed_at=performed_at or timezone.now(),
                 request_id=request_id_from(request),
                 notes=serializer.validated_data.get("notes") or None,
+                activity_code=serializer.validated_data["activity_code"],
+                activity_code_group=serializer.validated_data["activity_code_group"],
             )
         )
         return Response(RepairOrderResponseSerializer(result).data)
@@ -521,6 +523,8 @@ class RepairOrderViewSet(
                 labor_hours=serializer.validated_data["labor_hours"],
                 request_id=request_id_from(request),
                 notes=serializer.validated_data.get("notes") or None,
+                activity_code=serializer.validated_data["activity_code"],
+                activity_code_group=serializer.validated_data["activity_code_group"],
             )
         )
         return Response(RepairOrderResponseSerializer(result).data)

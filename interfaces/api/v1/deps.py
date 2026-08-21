@@ -193,6 +193,10 @@ from apps.repair.application.services.repair_order_timeline_service import (
     GetRepairOrderTimelineService,
     RecordRepairOrderEventService,
 )
+from apps.repair.application.services.sync_repair_activity_options_from_sap_service import (
+    ListRepairActivityOptionsService,
+    SyncRepairActivityOptionsFromSAPService,
+)
 from apps.repair.application.services.sync_repair_to_sap_service import (
     SyncRepairToSAPService,
 )
@@ -207,6 +211,9 @@ from apps.repair.application.services.update_repair_status_service import (
 )
 from apps.repair.application.services.workshop_technical_decision_service import (
     WorkshopTechnicalDecisionService,
+)
+from apps.repair.infrastructure.activity_option_repositories import (
+    DjangoRepairActivityOptionRepository,
 )
 from apps.repair.infrastructure.event_repositories import (
     DjangoRepairOrderEventRepository,
@@ -278,6 +285,9 @@ from infrastructure.sap.adapters.odata.fault_catalog_odata_adapter import (
 )
 from infrastructure.sap.adapters.odata.object_part_catalog_odata_adapter import (
     ObjectPartCatalogODataAdapter,
+)
+from infrastructure.sap.adapters.odata.repair_activity_catalog_odata_adapter import (
+    RepairActivityCatalogODataAdapter,
 )
 from infrastructure.sap.adapters.odata.vehicle_driver_odata_adapter import (
     VehicleDriverODataAdapter,
@@ -659,6 +669,31 @@ def get_sync_inspection_defect_options_from_sap_service() -> (
     )
 
 
+def get_repair_activity_option_repository() -> DjangoRepairActivityOptionRepository:
+    """Return the repair activity-catalog-option repository."""
+    return DjangoRepairActivityOptionRepository()
+
+
+def get_list_repair_activity_options_service() -> ListRepairActivityOptionsService:
+    """Return ListRepairActivityOptionsService."""
+    return ListRepairActivityOptionsService(get_repair_activity_option_repository())
+
+
+def get_sync_repair_activity_options_from_sap_service() -> (
+    SyncRepairActivityOptionsFromSAPService
+):
+    """Return SyncRepairActivityOptionsFromSAPService."""
+    config = SAPConfig.from_env()
+    return SyncRepairActivityOptionsFromSAPService(
+        get_repair_activity_option_repository(),
+        RepairActivityCatalogODataAdapter(
+            _sap_odata_client(),
+            service=config.repair_activity_catalog_service,
+            entity_set=config.repair_activity_catalog_entity_set,
+        ),
+    )
+
+
 def get_list_fault_catalog_service() -> ListFaultCatalogService:
     """Return ListFaultCatalogService."""
     return ListFaultCatalogService(get_fault_catalog_repository())
@@ -702,6 +737,7 @@ def get_run_sap_sync_service() -> RunSAPSyncService:
         get_sync_inspection_templates_from_sap_service(),
         get_sync_fault_catalog_from_sap_service(),
         get_sync_inspection_defect_options_from_sap_service(),
+        get_sync_repair_activity_options_from_sap_service(),
         get_sync_central_stock_from_sap_service(),
     )
 
@@ -1131,12 +1167,18 @@ def get_cancel_repair_order_service() -> CancelRepairOrderService:
 
 def get_add_repair_activity_service() -> AddRepairActivityService:
     """Return AddRepairActivityService."""
-    return AddRepairActivityService(get_repair_order_repository())
+    return AddRepairActivityService(
+        get_repair_order_repository(),
+        get_repair_activity_option_repository(),
+    )
 
 
 def get_update_repair_activity_service() -> UpdateRepairActivityService:
     """Return UpdateRepairActivityService."""
-    return UpdateRepairActivityService(get_repair_order_repository())
+    return UpdateRepairActivityService(
+        get_repair_order_repository(),
+        get_repair_activity_option_repository(),
+    )
 
 
 def get_delete_repair_activity_service() -> DeleteRepairActivityService:

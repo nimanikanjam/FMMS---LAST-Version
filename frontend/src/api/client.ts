@@ -10,6 +10,7 @@ import type {
   FailureSeverity,
   Inspection,
   InspectionDefectOption,
+  RepairActivityOption,
   InspectionItemInput,
   InspectionTemplate,
   InspectionType,
@@ -221,6 +222,14 @@ async function request<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
     throw new ApiError(response.status, 'پاسخ نامعتبر از سرور دریافت شد.', text);
   }
   return data as T;
+}
+
+/** Recording repair work: the SAP activity code is required; notes carry free-text detail. */
+export interface RepairActivityPayload {
+  activity_code: string;
+  activity_code_group: string;
+  labor_hours: string | number;
+  notes?: string;
 }
 
 export const api = {
@@ -631,9 +640,16 @@ export const api = {
     });
   },
 
+  /** Activity codes (SAP ZC_REPAIR01_CODE) offered when recording repair work. */
+  listRepairActivityOptions() {
+    return request<Paginated<RepairActivityOption> | RepairActivityOption[]>(
+      '/repair-activity-options/?page_size=100',
+    );
+  },
+
   addRepairActivity(
     id: string,
-    payload: { description: string; labor_hours: string | number; notes?: string },
+    payload: RepairActivityPayload,
   ) {
     return request(`/repair-orders/${id}/activities/`, {
       method: 'POST',
@@ -644,7 +660,7 @@ export const api = {
   updateRepairActivity(
     id: string,
     activityId: string,
-    payload: { description: string; labor_hours: string | number; notes?: string },
+    payload: RepairActivityPayload,
   ) {
     return request(`/repair-orders/${id}/activities/${activityId}/`, {
       method: 'PATCH',

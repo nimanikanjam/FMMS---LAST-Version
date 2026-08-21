@@ -106,7 +106,11 @@ class AddRepairActivityDTO:
         performed_by_id: UUID of the technician who performed the activity.
         performed_at: UTC timestamp when the activity was completed.
         request_id: Correlation ID for tracing.
-        notes: Optional additional technician notes.
+        notes: Optional free-text detail about this particular job.
+        activity_code: SAP activity ``Code`` (``ZC_REPAIR01_CODE_CDS``). When
+            given, ``description`` is overwritten with the catalog label so the
+            stored text always matches the code.
+        activity_code_group: SAP activity ``CodeGroup``.
     """
 
     repair_order_id: uuid.UUID
@@ -116,6 +120,8 @@ class AddRepairActivityDTO:
     performed_at: datetime
     request_id: str
     notes: str | None = field(default=None)
+    activity_code: str = field(default="")
+    activity_code_group: str = field(default="")
 
 
 @dataclass(frozen=True)
@@ -128,6 +134,8 @@ class UpdateRepairActivityDTO:
     labor_hours: Decimal
     request_id: str
     notes: str | None = field(default=None)
+    activity_code: str = field(default="")
+    activity_code_group: str = field(default="")
 
 
 @dataclass(frozen=True)
@@ -200,6 +208,8 @@ class RepairActivityResponseDTO:
     performed_by_id: uuid.UUID
     performed_at: datetime
     notes: str | None = field(default=None)
+    activity_code: str = field(default="")
+    activity_code_group: str = field(default="")
 
 
 @dataclass(frozen=True)

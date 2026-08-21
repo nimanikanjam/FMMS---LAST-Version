@@ -114,5 +114,6 @@ class TestIntegrationAPI:
             "inspection_templates",
             "fault_catalog",
             "inspection_defect_options",
+            "repair_activity_options",
             "central_stock",
         }
