@@ -50,6 +50,9 @@ def _normalize_material(material_number: str) -> tuple[str, str]:
 class DjangoCentralStockRepository(ICentralStockRepository):
     """ORM-backed repository for central warehouse stock rows."""
 
+    # Enables per-row savepoints during SAP sync (see _atomic_if_supported).
+    uses_transactions = True
+
     def get_by_id(self, stock_id: uuid.UUID) -> CentralStock:
         """Retrieve one stock row by UUID."""
         try:

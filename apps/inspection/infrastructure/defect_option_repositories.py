@@ -37,6 +37,9 @@ def _to_domain(orm: InspectionDefectOptionModel) -> InspectionDefectOption:
 class DjangoInspectionDefectOptionRepository(IInspectionDefectOptionRepository):
     """ORM-backed repository for inspection defect-catalog rows."""
 
+    # Enables per-row savepoints during SAP sync (see _atomic_if_supported).
+    uses_transactions = True
+
     def get_by_id(self, option_id: uuid.UUID) -> InspectionDefectOption:
         """Retrieve one row by UUID."""
         try:

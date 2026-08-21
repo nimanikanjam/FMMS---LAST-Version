@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import AbstractContextManager, nullcontext
 from datetime import UTC, datetime
+
+from django.db import transaction
 
 from apps.material.application.dto.central_stock_dto import (
     CentralStockResponseDTO,
@@ -104,7 +107,9 @@ class SyncCentralStockFromSAPService:
         failed = 0
         for sap_dto in rows:
             try:
-                if self._sync_one(sap_dto):
+                with self._atomic_if_supported():
+                    created_row = self._sync_one(sap_dto)
+                if created_row:
                     created += 1
                 else:
                     updated += 1
@@ -129,6 +134,19 @@ class SyncCentralStockFromSAPService:
             updated=updated,
             failed=failed,
         )
+
+    def _atomic_if_supported(self) -> AbstractContextManager[object]:
+        """Wrap one row in a savepoint, for ORM-backed repositories only.
+
+        Requests run inside a single transaction (``ATOMIC_REQUESTS``), so
+        without a savepoint per row one failing row poisons that transaction
+        and every later query — including the sync-run bookkeeping — dies
+        with "transaction is aborted", turning an isolated row failure into
+        a 500. In-memory test repositories have no transactions to nest in.
+        """
+        if getattr(self._repo, "uses_transactions", False):
+            return transaction.atomic()
+        return nullcontext()
 
     def _sync_one(self, sap_dto: SAPCentralStockDTO) -> bool:
         """Create or update one stock row from SAP data."""

@@ -35,6 +35,9 @@ def _to_domain(orm: RepairActivityOptionModel) -> RepairActivityOption:
 class DjangoRepairActivityOptionRepository(IRepairActivityOptionRepository):
     """ORM-backed repository for repair activity-catalog rows."""
 
+    # Enables per-row savepoints during SAP sync (see _atomic_if_supported).
+    uses_transactions = True
+
     def get_by_id(self, option_id: uuid.UUID) -> RepairActivityOption:
         """Retrieve one row by UUID."""
         try:

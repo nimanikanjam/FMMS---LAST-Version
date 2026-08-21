@@ -33,6 +33,9 @@ def _to_domain(orm: InspectionTemplateModel) -> InspectionTemplate:
 class DjangoInspectionTemplateRepository(IInspectionTemplateRepository):
     """ORM-backed repository for inspection checklist templates."""
 
+    # Enables per-row savepoints during SAP sync (see _atomic_if_supported).
+    uses_transactions = True
+
     def get_by_id(self, template_id: uuid.UUID) -> InspectionTemplate:
         """Retrieve a template by UUID."""
         try:

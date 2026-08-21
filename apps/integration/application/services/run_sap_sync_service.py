@@ -225,7 +225,12 @@ class RunSAPSyncService:
         """Run one sync and isolate its failure from the remaining syncs."""
         started_at = datetime.now(tz=UTC)
         try:
-            result = sync()
+            # Savepoint around the whole step: under ATOMIC_REQUESTS the
+            # request is one transaction, so a DB error escaping ``sync()``
+            # would leave it unusable and _save_item below could not record
+            # the failure — turning a handled failure into a 500.
+            with transaction.atomic():
+                result = sync()
         except Exception as exc:  # noqa: BLE001 - global sync must continue.
             finished_at = datetime.now(tz=UTC)
             _save_item(

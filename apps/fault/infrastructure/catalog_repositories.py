@@ -37,6 +37,9 @@ def _to_domain(orm: FaultCatalogModel) -> FaultCatalog:
 class DjangoFaultCatalogRepository(IFaultCatalogRepository):
     """ORM-backed repository for fault catalog rows."""
 
+    # Enables per-row savepoints during SAP sync (see _atomic_if_supported).
+    uses_transactions = True
+
     def get_by_id(self, catalog_id: uuid.UUID) -> FaultCatalog:
         """Retrieve one catalog row by UUID."""
         try:

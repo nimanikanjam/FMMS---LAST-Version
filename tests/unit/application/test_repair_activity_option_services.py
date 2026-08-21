@@ -146,3 +146,36 @@ class TestListRepairActivityOptionsService:
         )
 
         assert ListRepairActivityOptionsService(repo).execute() == []
+
+
+class TestPerRowSavepointWiring:
+    """Guard the wiring for a bug the suite structurally cannot reproduce.
+
+    The failure needs PostgreSQL's abort-on-error plus ATOMIC_REQUESTS; tests
+    run on SQLite with ATOMIC_REQUESTS disabled, so no test here can trigger
+    it. These assert the savepoint is wired the way the fix requires.
+    """
+
+    def test_orm_backed_repository_gets_a_real_savepoint(self) -> None:
+        from django.db.transaction import Atomic
+
+        from apps.repair.infrastructure.activity_option_repositories import (
+            DjangoRepairActivityOptionRepository,
+        )
+
+        # The ORM repository opts in, so each row is wrapped in a savepoint.
+        assert DjangoRepairActivityOptionRepository.uses_transactions is True
+
+        service = SyncRepairActivityOptionsFromSAPService(
+            DjangoRepairActivityOptionRepository(), FakeActivityCatalogPort([])
+        )
+        assert isinstance(service._atomic_if_supported(), Atomic)
+
+    def test_in_memory_repository_skips_the_savepoint(self) -> None:
+        from contextlib import nullcontext
+
+        service = SyncRepairActivityOptionsFromSAPService(
+            FakeRepairActivityOptionRepository(), FakeActivityCatalogPort([])
+        )
+        # No database to nest in — must not attempt a savepoint.
+        assert isinstance(service._atomic_if_supported(), nullcontext)
